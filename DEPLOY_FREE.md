@@ -111,8 +111,9 @@ Pour une démonstration :
 3. se connecter avec l'administrateur principal ;
 4. ouvrir le tableau de bord ;
 5. cliquer sur **Charger les données de test** ;
-6. vérifier les comptes, étudiants, enseignants, filière DGI, module, campagne et note de démonstration ;
-7. remettre ensuite `DEMO_SEED_ENABLED=false`.
+6. vérifier les étudiants, enseignants, filière DGI, module, campagne et note de démonstration ;
+7. vérifier qu'aucun compte de démonstration à mot de passe connu n'a été créé en production ;
+8. remettre ensuite `DEMO_SEED_ENABLED=false`.
 
 ## 6. Vérifications
 
