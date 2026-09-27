@@ -21,14 +21,21 @@ export class ScheduleService {
   async findAll(user: User) {
     const rows = await this.repo.find({ order: { startsAt: 'ASC' } });
     if (user.role === UserRole.ADMIN || user.role === UserRole.SCOLARITE) return rows;
+
     if (user.role === UserRole.TEACHER) {
-      return user.teacherProfile ? rows.filter((s) => s.teacher?.id === user.teacherProfile?.id) : [];
+      return user.teacherProfile
+        ? rows.filter((session) => session.teacher?.id === user.teacherProfile?.id)
+        : [];
     }
+
     if (user.role === UserRole.STUDENT && user.studentProfile) {
-      const enrollments = await this.enrollments.find({ where: { student: { id: user.studentProfile.id } } });
-      const groupIds = new Set(enrollments.map((e) => e.group?.id).filter(Boolean));
-      return rows.filter((s) => !!s.group?.id && groupIds.has(s.group.id));
+      const enrollments = await this.enrollments.find({
+        where: { student: { id: user.studentProfile.id } },
+      });
+      const groupIds = new Set(enrollments.map((enrollment) => enrollment.group?.id).filter(Boolean));
+      return rows.filter((session) => !!session.group?.id && groupIds.has(session.group.id));
     }
+
     return [];
   }
 
@@ -43,22 +50,30 @@ export class ScheduleService {
       ? (await this.groups.findOne({ where: { id: body.groupId } })) ?? undefined
       : undefined;
 
+    if (body.teacherId && !teacher) throw new NotFoundException('Enseignant introuvable');
     if (body.groupId && !group) throw new NotFoundException('Groupe introuvable');
+
+    if (group && module.program?.id && group.program.id !== module.program.id) {
+      throw new BadRequestException('Le groupe et le module n’appartiennent pas à la même filière');
+    }
 
     const startsAt = new Date(body.startsAt);
     const endsAt = new Date(body.endsAt);
-    if (!(startsAt < endsAt)) throw new BadRequestException('Intervalle horaire invalide');
+    if (!Number.isFinite(startsAt.getTime()) || !Number.isFinite(endsAt.getTime()) || !(startsAt < endsAt)) {
+      throw new BadRequestException('Intervalle horaire invalide');
+    }
 
+    const room = String(body.room || '').trim() || undefined;
     const overlaps = await this.repo.find({
       where: { startsAt: LessThan(endsAt), endsAt: MoreThan(startsAt) },
     });
 
     if (
       overlaps.some(
-        (x) =>
-          (body.room && x.room === body.room) ||
-          (teacher && x.teacher?.id === teacher.id) ||
-          (group && x.group?.id === group.id),
+        (existing) =>
+          (room && existing.room === room) ||
+          (teacher && existing.teacher?.id === teacher.id) ||
+          (group && existing.group?.id === group.id),
       )
     ) {
       throw new BadRequestException('Conflit détecté pour la salle, l’enseignant ou le groupe');
@@ -71,8 +86,8 @@ export class ScheduleService {
         group,
         startsAt,
         endsAt,
-        room: body.room,
-        groupName: group?.name || body.groupName,
+        room,
+        groupName: group?.name || String(body.groupName || '').trim() || undefined,
       }),
     );
   }
