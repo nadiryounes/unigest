@@ -18,7 +18,10 @@ async function bootstrap() {
   const origins = allowedOrigins();
 
   app.enableCors({
-    origin(origin, callback) {
+    origin(
+      origin: string | undefined,
+      callback: (error: Error | null, allow?: boolean) => void,
+    ) {
       if (!origin) return callback(null, true);
       if (origins.includes(origin)) return callback(null, true);
       return callback(new Error('Origin non autorisée par CORS'), false);
@@ -31,4 +34,5 @@ async function bootstrap() {
   await app.listen(port, '0.0.0.0');
   console.log(`UniGest API listening on port ${port}`);
 }
+
 bootstrap();
