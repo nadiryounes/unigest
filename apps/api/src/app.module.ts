@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
@@ -47,6 +47,7 @@ import { CandidateDocument } from './entities/candidate-document.entity';
 import { SeedService } from './common/seed.service';
 import { StorageModule } from './storage/storage.module';
 import { HealthModule } from './health/health.module';
+import { DatabaseInitGuard } from './common/database-init.guard';
 
 const entities = [
   User,
@@ -101,6 +102,7 @@ const entities = [
           ssl,
           entities,
           synchronize: String(config.get<string>('DB_SYNCHRONIZE') ?? 'false').toLowerCase() === 'true',
+          manualInitialization: !!process.env.VERCEL,
           retryAttempts: process.env.NODE_ENV === 'production' ? 1 : 10,
           retryDelay: 1000,
           extra: {
@@ -150,6 +152,10 @@ const entities = [
     AcademicStructureModule,
     AdmissionsModule,
   ],
-  providers: [SeedService, { provide: APP_INTERCEPTOR, useClass: AuditInterceptor }],
+  providers: [
+    SeedService,
+    { provide: APP_GUARD, useClass: DatabaseInitGuard },
+    { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
+  ],
 })
 export class AppModule {}
