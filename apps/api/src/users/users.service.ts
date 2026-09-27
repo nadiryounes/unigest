@@ -61,7 +61,7 @@ export class UsersService {
     const firstName = String(body.firstName || '').trim();
     const lastName = String(body.lastName || '').trim();
     if (!Object.values(UserRole).includes(role)) throw new BadRequestException('Rôle invalide');
-    if (!email || !/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(email)) throw new BadRequestException('Email invalide');
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new BadRequestException('Email invalide');
     if (!firstName || !lastName) throw new BadRequestException('Prénom et nom requis');
     if (!body.password || String(body.password).length < 12) throw new BadRequestException('Le mot de passe doit contenir au moins 12 caractères');
     if (await this.findByEmail(email)) throw new BadRequestException('Un compte utilise déjà cet email');
