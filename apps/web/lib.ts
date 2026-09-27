@@ -1,4 +1,10 @@
-export const API=process.env.NEXT_PUBLIC_API_URL||'http://localhost:4000';
+const configuredApi = process.env.NEXT_PUBLIC_API_URL?.trim().replace(/\/$/, '');
+
+export const API =
+  configuredApi ||
+  (process.env.NODE_ENV === 'production'
+    ? 'https://unigest-api.vercel.app'
+    : 'http://localhost:4000');
 
 export function token(){
   if(typeof window==='undefined')return '';
