@@ -12,7 +12,7 @@ export class AuthService {
     let user = await this.users.findByEmail(normalizedEmail);
 
     if (!user || !user.active || !(await bcrypt.compare(password, user.passwordHash))) {
-      user = await this.users.ensureBootstrapAdmin(normalizedEmail, password);
+      user = (await this.users.ensureBootstrapAdmin(normalizedEmail, password)) ?? null;
     }
 
     if (!user || !user.active || !(await bcrypt.compare(password, user.passwordHash))) {
