@@ -2,15 +2,27 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
+function normalizeOrigin(value: string) {
+  return value.trim().replace(/\/$/, '');
+}
+
 function allowedOrigins() {
   const configured = String(process.env.CORS_ORIGINS || '')
     .split(',')
-    .map((value) => value.trim())
+    .map(normalizeOrigin)
     .filter(Boolean);
 
-  if (configured.length) return configured;
-  if (process.env.NODE_ENV === 'production') return [];
-  return ['http://localhost:3000'];
+  if (process.env.NODE_ENV === 'production') {
+    return Array.from(new Set([
+      'https://unigest-web.vercel.app',
+      ...configured,
+    ]));
+  }
+
+  return Array.from(new Set([
+    'http://localhost:3000',
+    ...configured,
+  ]));
 }
 
 async function bootstrap() {
@@ -23,8 +35,9 @@ async function bootstrap() {
       callback: (error: Error | null, allow?: boolean) => void,
     ) {
       if (!origin) return callback(null, true);
-      if (origins.includes(origin)) return callback(null, true);
-      return callback(new Error('Origin non autorisée par CORS'), false);
+      const normalized = normalizeOrigin(origin);
+      if (origins.includes(normalized)) return callback(null, true);
+      return callback(new Error(`Origin non autorisée par CORS: ${normalized}`), false);
     },
     credentials: true,
   });
