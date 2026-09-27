@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.5.0 — Core Operations
+
+### Fiabilité cloud
+
+- Initialisation TypeORM différée sur Vercel.
+- Bascule automatique vers le Transaction pooler Supabase en environnement serverless.
+- Pool PostgreSQL limité pour réduire la pression sur Supabase.
+- Suppression du build Vercel personnalisé et des migrations automatiques au build.
+- Seed de production rendu explicite et idempotent.
+
+### Tableau de bord
+
+- Année universitaire active.
+- Campagnes d'admission ouvertes.
+- Candidatures à examiner.
+- Séances du jour.
+- Répartition des candidatures par statut.
+- Répartition des étudiants par filière.
+- Dernières candidatures.
+- Prochaines séances.
+- Action administrateur de chargement des données de démonstration.
+
+### Interface
+
+- Recherche générique dans les listes.
+- Tri par colonne.
+- Pagination côté client.
+- Export CSV.
+- Navigation active.
+- Version UI v0.5.0.
+
+### Qualité
+
+- CI GitHub permanente API + Web.
+- Documentation Vercel/Supabase réalignée avec l'architecture réellement testée.
+
+# Changelog
+
 ## 0.4.1 — Cloud Ready
 
 ### Déploiement
