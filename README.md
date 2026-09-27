@@ -1,22 +1,35 @@
 # UniGest MVP v0.4.1 Cloud Ready
 
-UniGest est un prototype de système d'information universitaire. La v0.4.1 conserve les fonctions de la v0.4 et ajoute les éléments nécessaires à un déploiement de test gratuit avec Vercel, Render et Supabase.
+UniGest est un prototype de système d'information universitaire. La v0.4.1 comprend les éléments nécessaires à un déploiement de test avec Vercel et Supabase.
 
-## Nouveautés cloud
+## Architecture cloud recommandée
 
-- `DATABASE_URL` prioritaire pour PostgreSQL distant.
-- SSL PostgreSQL configurable.
-- migration initiale complète pour une base vierge ;
+```text
+Vercel
+  +-- NestJS API (apps/api)
+  |      +--> Supabase PostgreSQL
+  |      +--> Supabase Storage
+  |
+  +-- Next.js Web (apps/web)
+```
+
+Le même dépôt GitHub est importé deux fois dans Vercel, avec une Root Directory différente pour chaque projet.
+
+## Fonctions cloud
+
+- `DATABASE_URL` pour PostgreSQL distant ;
+- SSL PostgreSQL configurable ;
+- migrations TypeORM pour une base vierge ;
+- exécution automatique des migrations lors du build Vercel de l'API ;
 - stockage abstrait `local` ou `supabase` ;
 - bucket Supabase privé pour les pièces de candidature ;
 - téléchargement des pièces par l'API authentifiée ;
-- endpoint `/health` qui vérifie PostgreSQL et le stockage ;
+- endpoint `/health` pour PostgreSQL et le stockage ;
 - CORS limité aux origines configurées ;
-- prise en charge du port `PORT` imposé par Render ;
-- `render.yaml` fourni ;
-- configuration Vercel fournie dans `apps/web/vercel.json` ;
+- frontend Next.js déployable depuis `apps/web` ;
+- backend NestJS déployable nativement depuis `apps/api` ;
 - seed de démonstration désactivé automatiquement en production ;
-- création d'un administrateur initial via variables d'environnement.
+- administrateur initial configurable par variables d'environnement.
 
 ## Modules disponibles
 
@@ -61,19 +74,18 @@ Ces comptes ne sont pas créés lorsque `NODE_ENV=production`, sauf si `DEMO_SEE
 
 Voir `DEPLOY_FREE.md`.
 
-Architecture recommandée :
+## API sur Vercel
+
+Vercel prend en charge NestJS directement. Le projet API doit être importé avec :
 
 ```text
-Vercel
-  Next.js
-     |
-     v
-Render
-  NestJS
-     |
-     +------> Supabase PostgreSQL
-     |
-     +------> Supabase Storage
+Root Directory : apps/api
+```
+
+Le script `vercel-build` compile NestJS puis exécute les migrations TypeORM :
+
+```text
+npm run build && npm run migration:run:prod
 ```
 
 ## PostgreSQL cloud
@@ -89,9 +101,9 @@ DATABASE_SSL_REJECT_UNAUTHORIZED=false
 DB_SYNCHRONIZE=false
 ```
 
-Pour Supabase, utiliser de préférence la chaîne fournie directement par `Connect` dans le tableau de bord. Pour un environnement IPv4-only, le Session pooler peut être nécessaire.
+Pour Supabase sur un réseau IPv4, le Session pooler peut être utilisé.
 
-`DATABASE_SSL_REJECT_UNAUTHORIZED=false` chiffre la connexion mais ne vérifie pas le certificat serveur. Pour une vérification complète, fournir le certificat CA Supabase en base64 dans `DATABASE_SSL_CA_BASE64`.
+`DATABASE_SSL_REJECT_UNAUTHORIZED=false` chiffre la connexion sans vérifier le certificat serveur. Pour une vérification complète, fournir le certificat CA Supabase en base64 dans `DATABASE_SSL_CA_BASE64`.
 
 ## Stockage des pièces
 
@@ -111,13 +123,11 @@ SUPABASE_SECRET_KEY=...
 SUPABASE_STORAGE_BUCKET=candidate-documents
 ```
 
-La clé de service ne doit jamais être envoyée au frontend ni placée dans une variable `NEXT_PUBLIC_*`.
+La clé secrète ne doit jamais être envoyée au frontend ni placée dans une variable `NEXT_PUBLIC_*`.
 
-Le bucket est privé. L'API crée/vérifie le bucket à la première utilisation ou lors du health check. Les agents autorisés téléchargent les pièces à travers l'API NestJS.
+Le bucket est privé. L'API crée ou vérifie le bucket lors de l'utilisation du stockage.
 
 ## Base vierge et migrations
-
-La v0.4.1 ajoute une migration initiale :
 
 ```text
 1770000000000-V02BaseSchema
@@ -125,18 +135,16 @@ La v0.4.1 ajoute une migration initiale :
 1790000000000-V04AcademicStructureAdmissions
 ```
 
-Une base PostgreSQL vide peut donc être préparée uniquement avec :
+Exécution manuelle :
 
 ```bash
 npm run build -w apps/api
 npm run migration:run:prod -w apps/api
 ```
 
-En cloud, `npm run start:cloud` exécute d'abord les migrations puis démarre l'API. Ce choix est adapté au déploiement de test sur une instance unique.
+Sur Vercel, cette opération est intégrée au build de l'API.
 
 ## Administrateur initial en production
-
-Les comptes de démonstration sont désactivés en production. Définir :
 
 ```env
 BOOTSTRAP_ADMIN_EMAIL=admin@example.org
@@ -153,14 +161,14 @@ Le mot de passe bootstrap doit contenir au moins 12 caractères.
 En production :
 
 ```env
-CORS_ORIGINS=https://votre-projet.vercel.app
+CORS_ORIGINS=https://votre-frontend.vercel.app
 ```
 
-Plusieurs origines sont possibles, séparées par des virgules.
+Plusieurs origines exactes sont possibles, séparées par des virgules.
 
 ## Portail de candidature
 
-- `/apply` : dépôt d'une candidature.
+- `/apply` : dépôt d'une candidature ;
 - `/application-status` : suivi par numéro de candidature et email.
 
 Les pièces acceptées sont PDF, JPEG et PNG, 10 Mo maximum par fichier.
@@ -171,7 +179,7 @@ Les pièces acceptées sont PDF, JPEG et PNG, 10 Mo maximum par fichier.
 apps/
   api/       NestJS + TypeORM
   web/       Next.js
-render.yaml  Blueprint Render
+render.yaml  configuration Render conservée comme solution alternative
 samples/     exemples d'import
 DEPLOY_FREE.md
 docker-compose.yml
@@ -179,4 +187,4 @@ docker-compose.yml
 
 ## Sécurité avant production réelle
 
-La v0.4.1 reste une version de test. Avant une exploitation universitaire réelle, ajouter au minimum tests E2E, sauvegardes, supervision, récupération de compte, 2FA, antivirus des fichiers entrants, limitation de débit, politique de conservation des données et audit de sécurité.
+La v0.4.1 reste une version de test. Avant une exploitation universitaire réelle, ajouter au minimum des tests E2E, sauvegardes, supervision, récupération de compte, 2FA, antivirus des fichiers entrants, limitation de débit, politique de conservation des données et audit de sécurité.
