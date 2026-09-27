@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - ".github/workflows/bootstrap-unigest.yml"
+      - ".bootstrap/**"
   workflow_dispatch:
 
 permissions:
@@ -36,14 +37,12 @@ jobs:
           rm -rf /tmp/unigest-extract
           mkdir -p /tmp/unigest-extract
           unzip -q /tmp/unigest.zip -d /tmp/unigest-extract
-
           SOURCE="/tmp/unigest-extract/unigest-mvp-v0.4.1"
           test -d "$SOURCE"
           test -f "$SOURCE/package.json"
           test -f "$SOURCE/render.yaml"
           test -f "$SOURCE/apps/api/package.json"
           test -f "$SOURCE/apps/web/package.json"
-
           rsync -a "$SOURCE"/ ./
 
       - name: Remove transfer scaffolding
