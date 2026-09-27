@@ -8,7 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  quality:
+    name: Build, unit tests and static checks
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -22,8 +23,162 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Reject committed runtime env files
+        shell: bash
+        run: |
+          set -euo pipefail
+          tracked=$(git ls-files | grep -E '(^|/)\.env($|\.)' | grep -vE '(^|/)\.env\.example$' || true)
+          if [ -n "$tracked" ]; then
+            echo "Unexpected tracked environment files:"
+            echo "$tracked"
+            exit 1
+          fi
+
+      - name: Scan for obvious committed secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RInE             --exclude-dir=.git             --exclude-dir=node_modules             --exclude='*.md'             'sb_secret_[A-Za-z0-9_-]{16,}|postgresql://[^[:space:]"]+:[^@[:space:]"]+@' .; then
+            echo "Potential secret detected in repository files."
+            exit 1
+          fi
+
+      - name: Production dependency audit
+        continue-on-error: true
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: API unit tests
+        run: npm run test:unit -w apps/api
+
+      - name: Web unit tests
+        run: npm test -w apps/web
+
       - name: Build API
         run: npm run build -w apps/api
 
       - name: Build Web
         run: npm run build -w apps/web
+
+  database-and-functional:
+    name: Migrations, API E2E and production smoke
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Create isolated test databases
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h 127.0.0.1 -U postgres -d postgres -c 'CREATE DATABASE unigest_migration_test;'
+          psql -h 127.0.0.1 -U postgres -d postgres -c 'CREATE DATABASE unigest_e2e;'
+          psql -h 127.0.0.1 -U postgres -d postgres -c 'CREATE DATABASE unigest_smoke;'
+
+      - name: Build API for migration validation
+        run: npm run build -w apps/api
+
+      - name: Run migrations on a clean database
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/unigest_migration_test
+          DATABASE_SSL: "false"
+        run: |
+          npm run migration:run:prod -w apps/api
+          npm run migration:run:prod -w apps/api
+
+      - name: Verify migrated schema
+        env:
+          PGPASSWORD: postgres
+        run: |
+          test "$(psql -h 127.0.0.1 -U postgres -d unigest_migration_test -tAc "SELECT count(*) FROM migrations;")" = "3"
+          test "$(psql -h 127.0.0.1 -U postgres -d unigest_migration_test -tAc "SELECT to_regclass('public.users') IS NOT NULL;")" = "t"
+          test "$(psql -h 127.0.0.1 -U postgres -d unigest_migration_test -tAc "SELECT to_regclass('public.applications') IS NOT NULL;")" = "t"
+          test "$(psql -h 127.0.0.1 -U postgres -d unigest_migration_test -tAc "SELECT to_regclass('public.audit_logs') IS NOT NULL;")" = "t"
+
+      - name: API end-to-end functional tests
+        env:
+          DATABASE_HOST: 127.0.0.1
+          DATABASE_PORT: "5432"
+          DATABASE_USER: postgres
+          DATABASE_PASSWORD: postgres
+          DATABASE_NAME: unigest_e2e
+          DATABASE_SSL: "false"
+        run: npm run test:e2e -w apps/api
+
+      - name: Build production applications
+        env:
+          NEXT_PUBLIC_API_URL: http://127.0.0.1:4000
+        run: |
+          npm run build -w apps/api
+          npm run build -w apps/web
+
+      - name: Smoke test compiled API and Web servers
+        shell: bash
+        env:
+          NODE_ENV: production
+          DATABASE_HOST: 127.0.0.1
+          DATABASE_PORT: "5432"
+          DATABASE_USER: postgres
+          DATABASE_PASSWORD: postgres
+          DATABASE_NAME: unigest_smoke
+          DATABASE_SSL: "false"
+          DB_SYNCHRONIZE: "true"
+          JWT_SECRET: smoke-test-jwt-secret-that-is-long-enough
+          BOOTSTRAP_ADMIN_EMAIL: smoke-admin@unigest.test
+          BOOTSTRAP_ADMIN_PASSWORD: SmokeAdminPassword123!
+          BOOTSTRAP_ADMIN_FIRST_NAME: Smoke
+          BOOTSTRAP_ADMIN_LAST_NAME: Admin
+          DEMO_SEED_ENABLED: "false"
+          STORAGE_DRIVER: local
+          LOCAL_UPLOAD_DIR: /tmp/unigest-smoke-uploads
+          CORS_ORIGINS: http://127.0.0.1:3000
+          API_PORT: "4000"
+          NEXT_PUBLIC_API_URL: http://127.0.0.1:4000
+        run: |
+          set -euo pipefail
+          npm run start:prod -w apps/api > /tmp/unigest-api.log 2>&1 &
+          API_PID=$!
+
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4000/health >/tmp/health.json; then break; fi
+            sleep 1
+          done
+          cat /tmp/health.json
+          grep -q '"status":"ok"' /tmp/health.json
+
+          login_code=$(curl -sS -o /tmp/login.json -w "%{http_code}"             -X POST http://127.0.0.1:4000/auth/login             -H 'Content-Type: application/json'             --data '{"email":"smoke-admin@unigest.test","password":"SmokeAdminPassword123!"}')
+          test "$login_code" = "201"
+          grep -q '"accessToken"' /tmp/login.json
+
+          npm run start -w apps/web -- -p 3000 > /tmp/unigest-web.log 2>&1 &
+          WEB_PID=$!
+
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:3000/ >/tmp/web.html; then break; fi
+            sleep 1
+          done
+          grep -q 'UniGest' /tmp/web.html
+
+          kill "$WEB_PID" "$API_PID" || true
