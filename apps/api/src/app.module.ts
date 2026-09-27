@@ -49,6 +49,7 @@ import { SeedService } from './common/seed.service';
 import { StorageModule } from './storage/storage.module';
 import { HealthModule } from './health/health.module';
 import { DatabaseInitGuard } from './common/database-init.guard';
+import { SensitiveRateLimitGuard } from './common/sensitive-rate-limit.guard';
 import { SystemController } from './system/system.controller';
 
 const entities = [
@@ -159,6 +160,7 @@ const entities = [
   providers: [
     SeedService,
     { provide: APP_GUARD, useClass: DatabaseInitGuard },
+    { provide: APP_GUARD, useClass: SensitiveRateLimitGuard },
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
   ],
 })
