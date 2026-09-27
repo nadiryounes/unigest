@@ -18,6 +18,10 @@ export class User {
   @Column() lastName: string;
   @Column({ type: 'enum', enum: UserRole, default: UserRole.STUDENT }) role: UserRole;
   @Column({ default: true }) active: boolean;
+  @Column({ type: 'int', default: 0 }) tokenVersion: number;
+  @Column({ type: 'int', default: 0 }) failedLoginAttempts: number;
+  @Column({ type: 'timestamptz', nullable: true }) lockedUntil?: Date | null;
+  @Column({ type: 'timestamptz', nullable: true }) passwordChangedAt?: Date | null;
 
   @OneToOne(() => Student, { nullable: true, eager: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'studentProfileId' })
