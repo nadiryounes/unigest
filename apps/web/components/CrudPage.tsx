@@ -153,9 +153,10 @@ export default function CrudPage({
         <form className="form-grid" onSubmit={submit}>
           {fields.map((field) => (
             <div className="field" key={field.name}>
-              <label>{field.label}</label>
+              <label htmlFor={`crud-${field.name}`}>{field.label}</label>
               {field.options ? (
                 <select
+                  id={`crud-${field.name}`}
                   required={field.required}
                   value={form[field.name] || ''}
                   onChange={(e) => setForm({ ...form, [field.name]: e.target.value })}
@@ -169,6 +170,7 @@ export default function CrudPage({
                 </select>
               ) : (
                 <input
+                  id={`crud-${field.name}`}
                   required={field.required}
                   step={field.step}
                   type={field.type || 'text'}
