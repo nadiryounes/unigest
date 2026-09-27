@@ -164,10 +164,22 @@ jobs:
           npm run start:prod -w apps/api > /tmp/unigest-api.log 2>&1 &
           API_PID=$!
 
+          api_ready=0
           for i in {1..30}; do
-            if curl -fsS http://127.0.0.1:4000/health >/tmp/health.json; then break; fi
+            if curl -fsS http://127.0.0.1:4000/health >/tmp/health.json; then
+              api_ready=1
+              break
+            fi
+            if ! kill -0 "$API_PID" 2>/dev/null; then
+              break
+            fi
             sleep 1
           done
+          if [ "$api_ready" != "1" ]; then
+            echo "===== API LOG ====="
+            cat /tmp/unigest-api.log || true
+            exit 1
+          fi
           cat /tmp/health.json
           grep -q '"status":"ok"' /tmp/health.json
 
@@ -178,10 +190,22 @@ jobs:
           npm run start -w apps/web -- -p 3000 > /tmp/unigest-web.log 2>&1 &
           WEB_PID=$!
 
+          web_ready=0
           for i in {1..30}; do
-            if curl -fsS http://127.0.0.1:3000/ >/tmp/web.html; then break; fi
+            if curl -fsS http://127.0.0.1:3000/ >/tmp/web.html; then
+              web_ready=1
+              break
+            fi
+            if ! kill -0 "$WEB_PID" 2>/dev/null; then
+              break
+            fi
             sleep 1
           done
+          if [ "$web_ready" != "1" ]; then
+            echo "===== WEB LOG ====="
+            cat /tmp/unigest-web.log || true
+            exit 1
+          fi
           grep -q 'UniGest' /tmp/web.html
 
           kill "$WEB_PID" "$API_PID" || true
