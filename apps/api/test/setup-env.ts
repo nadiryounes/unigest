@@ -16,3 +16,5 @@ process.env.DEMO_SEED_ENABLED = 'true';
 process.env.STORAGE_DRIVER = 'local';
 process.env.LOCAL_UPLOAD_DIR = '/tmp/unigest-e2e-uploads';
 process.env.CORS_ORIGINS = 'http://localhost:3000';
+
+process.env.PASSWORD_RESET_EXPOSE_TOKEN = 'true';
