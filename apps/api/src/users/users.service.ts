@@ -17,6 +17,41 @@ export class UsersService {
   findByEmail(email: string) { return this.repo.findOne({ where: { email } }); }
   findById(id: string) { return this.repo.findOne({ where: { id } }); }
 
+  async ensureBootstrapAdmin(email: string, password: string) {
+    const expectedEmail = String(process.env.BOOTSTRAP_ADMIN_EMAIL || '').trim().toLowerCase();
+    const expectedPassword = String(process.env.BOOTSTRAP_ADMIN_PASSWORD || '');
+
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    if (
+      !expectedEmail ||
+      expectedPassword.length < 12 ||
+      normalizedEmail !== expectedEmail ||
+      password !== expectedPassword
+    ) {
+      return undefined;
+    }
+
+    let user = await this.repo.findOne({ where: { email: expectedEmail } });
+    if (!user) {
+      user = this.repo.create({
+        email: expectedEmail,
+        passwordHash: await bcrypt.hash(expectedPassword, 12),
+        firstName: String(process.env.BOOTSTRAP_ADMIN_FIRST_NAME || 'Administrateur'),
+        lastName: String(process.env.BOOTSTRAP_ADMIN_LAST_NAME || 'UniGest'),
+        role: UserRole.ADMIN,
+        active: true,
+      });
+    } else {
+      user.passwordHash = await bcrypt.hash(expectedPassword, 12);
+      user.firstName = String(process.env.BOOTSTRAP_ADMIN_FIRST_NAME || user.firstName || 'Administrateur');
+      user.lastName = String(process.env.BOOTSTRAP_ADMIN_LAST_NAME || user.lastName || 'UniGest');
+      user.role = UserRole.ADMIN;
+      user.active = true;
+    }
+
+    return this.repo.save(user);
+  }
+
   async listSafe() {
     const rows = await this.repo.find({ order: { lastName: 'ASC', firstName: 'ASC' } });
     return rows.map(({ passwordHash, ...user }) => user);
