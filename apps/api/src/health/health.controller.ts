@@ -1,13 +1,9 @@
 import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
-import { AuthService } from '../auth/auth.service';
 import { HealthService } from './health.service';
 
 @Controller('health')
 export class HealthController {
-  constructor(
-    private readonly health: HealthService,
-    private readonly auth: AuthService,
-  ) {}
+  constructor(private readonly health: HealthService) {}
 
   @Get()
   async check() {
@@ -23,23 +19,5 @@ export class HealthController {
         version: '0.4.1',
       });
     }
-  }
-
-  @Get('bootstrap-admin')
-  async bootstrapAdmin() {
-    return this.health.checkBootstrapAdmin();
-  }
-
-  @Get('bootstrap-login')
-  async bootstrapLogin() {
-    const email = String(process.env.BOOTSTRAP_ADMIN_EMAIL || '');
-    const password = String(process.env.BOOTSTRAP_ADMIN_PASSWORD || '');
-    const result = await this.auth.login(email, password);
-    return {
-      ok: true,
-      role: result.user?.role || null,
-      userIdPresent: !!result.user?.id,
-      tokenPresent: !!result.accessToken,
-    };
   }
 }
