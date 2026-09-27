@@ -1,159 +1,201 @@
 # Déployer UniGest v0.4.1 gratuitement pour test
 
-Cette procédure vise une démonstration ou des tests fonctionnels, pas une production universitaire.
+Cette procédure vise une démonstration ou des tests fonctionnels avec des données fictives. Elle n'est pas destinée à une exploitation universitaire réelle.
 
-## 1. Mettre le projet sur GitHub
+## Architecture
 
-Créer un dépôt GitHub puis y pousser le contenu de `unigest-mvp-v0.4.1`.
+Le dépôt GitHub contient deux applications déployées comme deux projets Vercel distincts :
 
-Ne jamais committer `.env`, les mots de passe, la chaîne PostgreSQL ou la clé Supabase.
+```text
+GitHub: nadiryounes/unigest
+   |
+   +--> Vercel Project 1: apps/api  --> NestJS API
+   |                                  |
+   |                                  +--> Supabase PostgreSQL
+   |                                  +--> Supabase Storage
+   |
+   +--> Vercel Project 2: apps/web  --> Next.js
+```
 
-## 2. Créer le projet Supabase
+Vercel prend actuellement en charge NestJS directement. Aucun adaptateur serverless personnalisé n'est nécessaire.
 
-Créer un projet Supabase.
+## 1. Supabase
 
-Dans `Project > Connect`, copier une chaîne PostgreSQL adaptée au backend Render. Si la connexion directe n'est pas accessible depuis le réseau utilisé, choisir le Session pooler.
-
-Variables nécessaires pour l'API :
+Créer un projet Supabase puis récupérer :
 
 ```env
 DATABASE_URL=postgresql://...
-DATABASE_SSL=true
-DATABASE_SSL_REJECT_UNAUTHORIZED=false
 SUPABASE_URL=https://PROJECT.supabase.co
 SUPABASE_SECRET_KEY=...
 SUPABASE_STORAGE_BUCKET=candidate-documents
 ```
 
-La clé `SUPABASE_SECRET_KEY` est un secret serveur. Ne jamais la placer dans Vercel côté navigateur et ne jamais la préfixer par `NEXT_PUBLIC_`.
+Pour un accès IPv4, utiliser le Session pooler si nécessaire.
 
-Le bucket `candidate-documents` peut être créé manuellement comme bucket privé. Si le compte de service dispose des droits nécessaires, UniGest le crée aussi automatiquement.
-
-## 3. Déployer l'API sur Render
-
-Le fichier `render.yaml` configure le service.
-
-Depuis Render :
-
-1. connecter le dépôt GitHub ;
-2. choisir `New > Blueprint` ;
-3. sélectionner le dépôt ;
-4. Render détecte `render.yaml` ;
-5. renseigner les variables marquées `sync: false`.
-
-Valeurs à fournir :
+Créer dans Supabase Storage un bucket privé nommé exactement :
 
 ```text
-DATABASE_URL
-CORS_ORIGINS
-SUPABASE_URL
-SUPABASE_SECRET_KEY
-BOOTSTRAP_ADMIN_EMAIL
-BOOTSTRAP_ADMIN_PASSWORD
+candidate-documents
 ```
 
-Pour le premier déploiement, `CORS_ORIGINS` peut contenir une URL temporaire. Elle sera remplacée par l'URL Vercel à l'étape 5.
+Ne jamais committer les secrets dans GitHub.
 
-Le mot de passe bootstrap doit contenir au moins 12 caractères.
+## 2. Déployer l'API NestJS sur Vercel
 
-Le service exécute :
+Dans Vercel :
 
-```text
-Build : npm install && npm run build
-Start : npm run start:cloud
+1. choisir `Add New > Project` ;
+2. importer le dépôt `nadiryounes/unigest` ;
+3. définir `Root Directory` sur `apps/api` ;
+4. laisser Vercel détecter NestJS automatiquement ;
+5. ne pas modifier l'Output Directory ;
+6. ajouter les variables d'environnement ci-dessous.
+
+Variables API :
+
+```env
+NODE_ENV=production
+
+DATABASE_URL=postgresql://...
+DATABASE_SSL=true
+DATABASE_SSL_REJECT_UNAUTHORIZED=false
+DB_SYNCHRONIZE=false
+
+JWT_SECRET=une-valeur-longue-aleatoire
+
+DEMO_SEED_ENABLED=false
+BOOTSTRAP_ADMIN_EMAIL=admin@example.org
+BOOTSTRAP_ADMIN_PASSWORD=un-mot-de-passe-de-12-caracteres-minimum
+BOOTSTRAP_ADMIN_FIRST_NAME=Administrateur
+BOOTSTRAP_ADMIN_LAST_NAME=UniGest
+
+STORAGE_DRIVER=supabase
+SUPABASE_URL=https://PROJECT.supabase.co
+SUPABASE_SECRET_KEY=...
+SUPABASE_STORAGE_BUCKET=candidate-documents
 ```
 
-`start:cloud` applique les migrations puis démarre NestJS.
+`CORS_ORIGINS` peut être laissé vide au premier déploiement de l'API. Il sera défini après création du frontend.
 
-Après le déploiement, noter l'URL, par exemple :
+Le fichier `apps/api/package.json` contient :
 
 ```text
-https://unigest-api.onrender.com
+vercel-build = npm run build && npm run migration:run:prod
+```
+
+Ainsi, lors du déploiement, NestJS est compilé puis les migrations TypeORM sont appliquées à Supabase avant mise en ligne.
+
+Après déploiement, noter l'URL de production, par exemple :
+
+```text
+https://unigest-api.vercel.app
 ```
 
 Tester :
 
 ```text
-https://unigest-api.onrender.com/health
+https://unigest-api.vercel.app/health
 ```
 
-Le résultat doit signaler `status: "ok"`.
+Le résultat doit indiquer un statut `ok` ou éventuellement `degraded` si le bucket Storage n'est pas encore prêt.
 
-## 4. Déployer le frontend sur Vercel
+## 3. Déployer le frontend Next.js sur Vercel
 
-Importer le même dépôt dans Vercel.
+Créer un deuxième projet Vercel à partir du même dépôt :
 
-Configurer :
-
-```text
-Root Directory : apps/web
-Framework       : Next.js
-```
-
-Créer la variable :
+1. `Add New > Project` ;
+2. sélectionner encore `nadiryounes/unigest` ;
+3. définir `Root Directory` sur `apps/web` ;
+4. conserver le Framework Preset `Next.js` ;
+5. ajouter :
 
 ```env
-NEXT_PUBLIC_API_URL=https://unigest-api.onrender.com
+NEXT_PUBLIC_API_URL=https://unigest-api.vercel.app
 ```
 
 Déployer.
 
-Vercel fournit ensuite une URL de type :
+Noter l'URL du frontend, par exemple :
 
 ```text
-https://unigest-xxxx.vercel.app
+https://unigest-web.vercel.app
 ```
 
-Les variables `NEXT_PUBLIC_*` sont intégrées au bundle lors du build. Toute modification de `NEXT_PUBLIC_API_URL` nécessite donc un nouveau déploiement du frontend.
+## 4. Configurer CORS sur l'API
 
-## 5. Corriger CORS dans Render
+Retourner dans le projet Vercel de l'API :
 
-Dans Render, définir :
+`Settings > Environment Variables`
+
+Ajouter :
 
 ```env
-CORS_ORIGINS=https://unigest-xxxx.vercel.app
+CORS_ORIGINS=https://unigest-web.vercel.app
 ```
 
-Puis redémarrer ou redéployer l'API.
+Puis redéployer l'API.
 
-Si plusieurs domaines sont utilisés :
+Pour plusieurs domaines :
 
 ```env
-CORS_ORIGINS=https://unigest.vercel.app,https://demo.example.org
+CORS_ORIGINS=https://unigest-web.vercel.app,https://demo.example.org
 ```
 
-## 6. Premier test
+UniGest exige des origines exactes ; les jokers ne sont pas activés.
+
+## 5. Premier test
 
 Tester dans cet ordre :
 
 1. `/health` sur l'API ;
-2. page de connexion ;
+2. page de connexion du frontend ;
 3. connexion avec `BOOTSTRAP_ADMIN_EMAIL` ;
-4. création d'une année et d'une filière ;
-5. création d'une campagne ;
-6. `/apply` depuis une fenêtre privée ;
-7. dépôt d'un PDF ;
-8. retour dans `Candidatures & admissions` ;
-9. téléchargement de la pièce depuis l'interface administrative.
+4. création d'une année universitaire ;
+5. création d'une filière ;
+6. création d'une campagne d'admission ;
+7. ouverture de `/apply` dans une fenêtre privée ;
+8. dépôt d'un PDF fictif ;
+9. retour dans `Candidatures & admissions` ;
+10. téléchargement de la pièce depuis l'interface administrative.
 
-## 7. Limites du déploiement gratuit
+## 6. Migrations
 
-Selon les conditions des fournisseurs, le service gratuit peut être mis en veille, démarrer lentement après une période d'inactivité et disposer de quotas limités.
+Les migrations suivantes préparent une base Supabase vierge :
 
-Ne pas utiliser cette configuration gratuite pour des dossiers étudiants réels ou sensibles. Utiliser des données fictives pour les tests publics.
+```text
+1770000000000-V02BaseSchema
+1780000000000-V03ProfilesAndAudit
+1790000000000-V04AcademicStructureAdmissions
+```
 
-## 8. Passage ultérieur en production
+Elles sont rejouables sans recréer les migrations déjà appliquées grâce à la table de migrations TypeORM.
+
+## 7. Sécurité
+
+Pour un test public :
+
+- utiliser uniquement des données fictives ;
+- ne jamais exposer `SUPABASE_SECRET_KEY` dans le frontend ;
+- ne jamais utiliser un nom de variable commençant par `NEXT_PUBLIC_` pour un secret ;
+- utiliser un `JWT_SECRET` aléatoire et long ;
+- conserver `DEMO_SEED_ENABLED=false` ;
+- garder le bucket `candidate-documents` privé.
+
+Si un secret a été communiqué dans un canal non prévu pour le stockage de secrets, le régénérer après validation du déploiement et remplacer la valeur dans Vercel.
+
+## 8. Limites
+
+Les offres gratuites Vercel et Supabase sont adaptées au développement et à la démonstration, avec des quotas et limites qui peuvent évoluer.
 
 Avant une exploitation réelle :
 
 - domaine institutionnel ;
-- sauvegardes PostgreSQL testées ;
-- stockage avec politique de rétention ;
-- chiffrement et vérification SSL complète ;
-- scans antivirus ;
+- sauvegardes testées ;
+- vérification SSL complète ;
 - limitation de débit ;
+- antivirus pour les fichiers entrants ;
+- récupération de compte et 2FA ;
+- supervision ;
 - journalisation centralisée ;
-- 2FA ;
-- tests d'intrusion ;
-- procédures de restauration ;
-- suppression de tous les comptes et données de démonstration.
+- tests E2E et tests d'intrusion ;
+- politique de conservation et suppression des données.
