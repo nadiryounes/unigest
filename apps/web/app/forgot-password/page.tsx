@@ -54,8 +54,9 @@ export default function ForgotPasswordPage() {
             Saisissez l’adresse e-mail associée à votre compte.
           </p>
           <div className="field">
-            <label>Email</label>
+            <label htmlFor="forgot-email">Email</label>
             <input
+              id="forgot-email"
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
