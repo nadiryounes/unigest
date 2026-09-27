@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AcademicModule } from '../entities/academic-module.entity';
@@ -9,37 +9,58 @@ import { AcademicSemester } from '../entities/academic-semester.entity';
 @Injectable()
 export class AcademicModulesService {
   constructor(
-    @InjectRepository(AcademicModule) private repo: Repository<AcademicModule>,
-    @InjectRepository(Program) private programs: Repository<Program>,
-    @InjectRepository(Teacher) private teachers: Repository<Teacher>,
-    @InjectRepository(AcademicSemester) private semesters: Repository<AcademicSemester>,
+    @InjectRepository(AcademicModule) private readonly repo: Repository<AcademicModule>,
+    @InjectRepository(Program) private readonly programs: Repository<Program>,
+    @InjectRepository(Teacher) private readonly teachers: Repository<Teacher>,
+    @InjectRepository(AcademicSemester) private readonly semesters: Repository<AcademicSemester>,
   ) {}
 
   findAll() {
     return this.repo.find({ order: { semester: 'ASC', code: 'ASC' } });
   }
 
-  async create(b: any) {
-    const program = b.programId
-      ? (await this.programs.findOne({ where: { id: b.programId } })) ?? undefined
+  async create(body: any) {
+    const code = String(body.code || '').trim().toUpperCase();
+    const name = String(body.name || '').trim();
+    if (!code || !name) throw new BadRequestException('Code et nom du module requis');
+    if (await this.repo.findOne({ where: { code } })) {
+      throw new BadRequestException('Un module utilise déjà ce code');
+    }
+
+    const program = body.programId
+      ? (await this.programs.findOne({ where: { id: body.programId } })) ?? undefined
       : undefined;
-    const teacher = b.teacherId
-      ? (await this.teachers.findOne({ where: { id: b.teacherId } })) ?? undefined
+    const teacher = body.teacherId
+      ? (await this.teachers.findOne({ where: { id: body.teacherId } })) ?? undefined
       : undefined;
-    const semesterRef = b.semesterRefId
-      ? (await this.semesters.findOne({ where: { id: b.semesterRefId } })) ?? undefined
+    const semesterRef = body.semesterRefId
+      ? (await this.semesters.findOne({ where: { id: body.semesterRefId } })) ?? undefined
       : undefined;
 
-    if (b.programId && !program) throw new NotFoundException('Filière introuvable');
-    if (b.teacherId && !teacher) throw new NotFoundException('Enseignant introuvable');
-    if (b.semesterRefId && !semesterRef) throw new NotFoundException('Semestre académique introuvable');
+    if (body.programId && !program) throw new NotFoundException('Filière introuvable');
+    if (body.teacherId && !teacher) throw new NotFoundException('Enseignant introuvable');
+    if (body.semesterRefId && !semesterRef) {
+      throw new NotFoundException('Semestre académique introuvable');
+    }
+    if (program && semesterRef && semesterRef.level.program.id !== program.id) {
+      throw new BadRequestException('Le semestre ne correspond pas à la filière du module');
+    }
+
+    const semester = Number(body.semester || semesterRef?.ordinal || 1);
+    const coefficient = Number(body.coefficient ?? 1);
+    if (!Number.isInteger(semester) || semester < 1) {
+      throw new BadRequestException('Numéro de semestre invalide');
+    }
+    if (!Number.isFinite(coefficient) || coefficient <= 0) {
+      throw new BadRequestException('Coefficient du module invalide');
+    }
 
     return this.repo.save(
       this.repo.create({
-        code: b.code,
-        name: b.name,
-        semester: Number(b.semester || semesterRef?.ordinal || 1),
-        coefficient: Number(b.coefficient || 1),
+        code,
+        name,
+        semester,
+        coefficient,
         program: program || semesterRef?.level.program,
         semesterRef,
         teacher,
