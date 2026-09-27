@@ -152,7 +152,7 @@ jobs:
           BOOTSTRAP_ADMIN_PASSWORD: SmokeAdminPassword123!
           BOOTSTRAP_ADMIN_FIRST_NAME: Smoke
           BOOTSTRAP_ADMIN_LAST_NAME: Admin
-          DEMO_SEED_ENABLED: "false"
+          DEMO_SEED_ENABLED: "true"
           STORAGE_DRIVER: local
           LOCAL_UPLOAD_DIR: /tmp/unigest-smoke-uploads
           CORS_ORIGINS: http://127.0.0.1:3000
@@ -181,10 +181,25 @@ jobs:
           fi
           cat /tmp/health.json
           grep -q '"status":"ok"' /tmp/health.json
+          grep -q '"version":"0.5.0"' /tmp/health.json
 
-          login_code=$(curl -sS -o /tmp/login.json -w "%{http_code}"             -X POST http://127.0.0.1:4000/auth/login             -H 'Content-Type: application/json'             --data '{"email":"smoke-admin@unigest.test","password":"SmokeAdminPassword123!"}')
+          login_code=$(curl -sS -o /tmp/login.json -w "%{http_code}" \
+            -X POST http://127.0.0.1:4000/auth/login \
+            -H 'Content-Type: application/json' \
+            --data '{"email":"smoke-admin@unigest.test","password":"SmokeAdminPassword123!"}')
           test "$login_code" = "201"
           grep -q '"accessToken"' /tmp/login.json
+          TOKEN=$(node -e "const fs=require('fs'); process.stdout.write(JSON.parse(fs.readFileSync('/tmp/login.json','utf8')).accessToken)")
+
+          curl -fsS http://127.0.0.1:4000/system/demo-status \
+            -H "Authorization: Bearer $TOKEN" >/tmp/demo-status.json
+          grep -q '"loaded":true' /tmp/demo-status.json
+
+          demo_admin_code=$(curl -sS -o /tmp/demo-admin.json -w "%{http_code}" \
+            -X POST http://127.0.0.1:4000/auth/login \
+            -H 'Content-Type: application/json' \
+            --data '{"email":"admin@unigest.local","password":"Admin123!"}')
+          test "$demo_admin_code" = "401"
 
           npm run start -w apps/web -- -p 3000 > /tmp/unigest-web.log 2>&1 &
           WEB_PID=$!
