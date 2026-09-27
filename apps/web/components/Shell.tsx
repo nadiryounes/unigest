@@ -38,6 +38,7 @@ const teacherNav: NavItem[] = [
   ['/attendance', 'Mes présences'],
 ];
 const studentNav: NavItem[] = [['/my-space', 'Mon espace']];
+const securityNav: NavItem = ['/account-security', 'Sécurité du compte'];
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
@@ -63,14 +64,16 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             ? studentNav
             : [];
 
+  const visibleNav = user ? [...nav, securityNav] : [];
+
   return (
     <div className="shell">
       <aside className="sidebar">
         <div className="logo">
-          UniGest <span className="version">v0.5.0</span>
+          UniGest <span className="version">v0.5.1</span>
         </div>
         <nav className="nav">
-          {nav.map(([href, label]) => (
+          {visibleNav.map(([href, label]) => (
             <Link className={pathname === href ? 'active' : ''} href={href} key={href}>
               {label}
             </Link>
