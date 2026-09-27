@@ -16,7 +16,7 @@ export class HealthController {
       throw new ServiceUnavailableException({
         status: 'down',
         database: 'unavailable',
-        version: '0.4.1',
+        version: '0.5.0',
       });
     }
   }
