@@ -21,11 +21,13 @@ import { ApplicationCampaign } from './entities/application-campaign.entity';
 import { Candidate } from './entities/candidate.entity';
 import { Application } from './entities/application.entity';
 import { CandidateDocument } from './entities/candidate-document.entity';
+import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { V02BaseSchema1770000000000 } from './migrations/1770000000000-V02BaseSchema';
 import { V03ProfilesAndAudit1780000000000 } from './migrations/1780000000000-V03ProfilesAndAudit';
 import { V04AcademicStructureAdmissions1790000000000 } from './migrations/1790000000000-V04AcademicStructureAdmissions';
+import { V051SecurityHardening1800000000000 } from './migrations/1800000000000-V051SecurityHardening';
 
-export const entities = [User, Student, Teacher, Program, AcademicModule, Enrollment, ClassSession, Attendance, Grade, AcademicYear, StudentGroup, Assessment, AuditLog, AcademicLevel, AcademicSemester, ModuleElement, ValidationRule, ApplicationCampaign, Candidate, Application, CandidateDocument];
+export const entities = [User, Student, Teacher, Program, AcademicModule, Enrollment, ClassSession, Attendance, Grade, AcademicYear, StudentGroup, Assessment, AuditLog, AcademicLevel, AcademicSemester, ModuleElement, ValidationRule, ApplicationCampaign, Candidate, Application, CandidateDocument, PasswordResetToken];
 
 const databaseUrl = process.env.DATABASE_URL;
 const sslEnabled = String(process.env.DATABASE_SSL || (databaseUrl ? 'true' : 'false')).toLowerCase() === 'true';
@@ -51,6 +53,6 @@ export default new DataSource({
       }),
   ssl,
   entities,
-  migrations: [V02BaseSchema1770000000000, V03ProfilesAndAudit1780000000000, V04AcademicStructureAdmissions1790000000000],
+  migrations: [V02BaseSchema1770000000000, V03ProfilesAndAudit1780000000000, V04AcademicStructureAdmissions1790000000000, V051SecurityHardening1800000000000],
   synchronize: false,
 });

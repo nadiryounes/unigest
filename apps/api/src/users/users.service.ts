@@ -17,6 +17,46 @@ export class UsersService {
   findByEmail(email: string) { return this.repo.findOne({ where: { email } }); }
   findById(id: string) { return this.repo.findOne({ where: { id } }); }
 
+  isTemporarilyLocked(user: User) {
+    return !!user.lockedUntil && new Date(user.lockedUntil).getTime() > Date.now();
+  }
+
+  async registerFailedLogin(user: User) {
+    const nextAttempts = Number(user.failedLoginAttempts || 0) + 1;
+    user.failedLoginAttempts = nextAttempts;
+    if (nextAttempts >= 5) {
+      user.lockedUntil = new Date(Date.now() + 15 * 60 * 1000);
+      user.failedLoginAttempts = 0;
+    }
+    return this.repo.save(user);
+  }
+
+  async clearLoginFailures(user: User) {
+    if (!user.failedLoginAttempts && !user.lockedUntil) return user;
+    user.failedLoginAttempts = 0;
+    user.lockedUntil = null;
+    return this.repo.save(user);
+  }
+
+  async setPassword(user: User, newPassword: string) {
+    if (String(newPassword || '').length < 12) {
+      throw new BadRequestException('Le mot de passe doit contenir au moins 12 caractères');
+    }
+    user.passwordHash = await bcrypt.hash(String(newPassword), 12);
+    user.passwordChangedAt = new Date();
+    user.tokenVersion = Number(user.tokenVersion || 0) + 1;
+    user.failedLoginAttempts = 0;
+    user.lockedUntil = null;
+    return this.repo.save(user);
+  }
+
+  async revokeSessions(userId: string) {
+    const user = await this.findById(userId);
+    if (!user) throw new NotFoundException('Compte introuvable');
+    user.tokenVersion = Number(user.tokenVersion || 0) + 1;
+    return this.repo.save(user);
+  }
+
   async ensureBootstrapAdmin(email: string, password: string) {
     const expectedEmail = String(process.env.BOOTSTRAP_ADMIN_EMAIL || '').trim().toLowerCase();
     const expectedPassword = String(process.env.BOOTSTRAP_ADMIN_PASSWORD || '');

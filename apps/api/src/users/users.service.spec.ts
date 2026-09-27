@@ -60,4 +60,38 @@ describe('UsersService bootstrap administrator', () => {
     expect(repo.save).not.toHaveBeenCalled();
     expect(existing.active).toBe(false);
   });
+  it('locks an account for 15 minutes after the fifth failed login', async () => {
+    const user: any = {
+      id: 'u1',
+      failedLoginAttempts: 4,
+      lockedUntil: null,
+    };
+    const repo: any = {
+      save: jest.fn(async (value) => value),
+    };
+    const service = new UsersService(repo, {} as any, {} as any);
+
+    const result = await service.registerFailedLogin(user);
+
+    expect(result.failedLoginAttempts).toBe(0);
+    expect(result.lockedUntil).toBeInstanceOf(Date);
+    expect(result.lockedUntil!.getTime()).toBeGreaterThan(Date.now() + 14 * 60 * 1000);
+  });
+
+  it('increments tokenVersion when all sessions are revoked', async () => {
+    const user: any = {
+      id: 'u1',
+      tokenVersion: 2,
+    };
+    const repo: any = {
+      findOne: jest.fn().mockResolvedValue(user),
+      save: jest.fn(async (value) => value),
+    };
+    const service = new UsersService(repo, {} as any, {} as any);
+
+    const result = await service.revokeSessions('u1');
+
+    expect(result.tokenVersion).toBe(3);
+  });
+
 });

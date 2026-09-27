@@ -44,10 +44,12 @@ import { ApplicationCampaign } from './entities/application-campaign.entity';
 import { Candidate } from './entities/candidate.entity';
 import { Application } from './entities/application.entity';
 import { CandidateDocument } from './entities/candidate-document.entity';
+import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { SeedService } from './common/seed.service';
 import { StorageModule } from './storage/storage.module';
 import { HealthModule } from './health/health.module';
 import { DatabaseInitGuard } from './common/database-init.guard';
+import { SensitiveRateLimitGuard } from './common/sensitive-rate-limit.guard';
 import { SystemController } from './system/system.controller';
 
 const entities = [
@@ -72,6 +74,7 @@ const entities = [
   Candidate,
   Application,
   CandidateDocument,
+  PasswordResetToken,
 ];
 
 @Module({
@@ -157,6 +160,7 @@ const entities = [
   providers: [
     SeedService,
     { provide: APP_GUARD, useClass: DatabaseInitGuard },
+    { provide: APP_GUARD, useClass: SensitiveRateLimitGuard },
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
   ],
 })
