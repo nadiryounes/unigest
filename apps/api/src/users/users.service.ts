@@ -31,23 +31,21 @@ export class UsersService {
       return undefined;
     }
 
-    let user = await this.repo.findOne({ where: { email: expectedEmail } });
-    if (!user) {
-      user = this.repo.create({
-        email: expectedEmail,
-        passwordHash: await bcrypt.hash(expectedPassword, 12),
-        firstName: String(process.env.BOOTSTRAP_ADMIN_FIRST_NAME || 'Administrateur'),
-        lastName: String(process.env.BOOTSTRAP_ADMIN_LAST_NAME || 'UniGest'),
-        role: UserRole.ADMIN,
-        active: true,
-      });
-    } else {
-      user.passwordHash = await bcrypt.hash(expectedPassword, 12);
-      user.firstName = String(process.env.BOOTSTRAP_ADMIN_FIRST_NAME || user.firstName || 'Administrateur');
-      user.lastName = String(process.env.BOOTSTRAP_ADMIN_LAST_NAME || user.lastName || 'UniGest');
-      user.role = UserRole.ADMIN;
-      user.active = true;
+    const existing = await this.repo.findOne({ where: { email: expectedEmail } });
+    if (existing) {
+      // Le secret bootstrap sert uniquement à la création initiale.
+      // Il ne doit jamais réactiver ni réinitialiser un compte existant.
+      return undefined;
     }
+
+    const user = this.repo.create({
+      email: expectedEmail,
+      passwordHash: await bcrypt.hash(expectedPassword, 12),
+      firstName: String(process.env.BOOTSTRAP_ADMIN_FIRST_NAME || 'Administrateur'),
+      lastName: String(process.env.BOOTSTRAP_ADMIN_LAST_NAME || 'UniGest'),
+      role: UserRole.ADMIN,
+      active: true,
+    });
 
     return this.repo.save(user);
   }
