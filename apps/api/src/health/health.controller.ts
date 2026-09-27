@@ -20,4 +20,9 @@ export class HealthController {
       });
     }
   }
+
+  @Get('bootstrap-admin')
+  async bootstrapAdmin() {
+    return this.health.checkBootstrapAdmin();
+  }
 }
