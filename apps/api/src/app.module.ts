@@ -48,6 +48,7 @@ import { SeedService } from './common/seed.service';
 import { StorageModule } from './storage/storage.module';
 import { HealthModule } from './health/health.module';
 import { DatabaseInitGuard } from './common/database-init.guard';
+import { SystemController } from './system/system.controller';
 
 const entities = [
   User,
@@ -74,6 +75,7 @@ const entities = [
 ];
 
 @Module({
+  controllers: [SystemController],
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
