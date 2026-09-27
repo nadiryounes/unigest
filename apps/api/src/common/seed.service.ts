@@ -126,8 +126,11 @@ export class SeedService implements OnApplicationBootstrap {
 
     if (!demoSeedEnabled) return;
 
-    await this.ensureUser({ email: 'admin@unigest.local', password: 'Admin123!', firstName: 'Administrateur', lastName: 'UniGest', role: UserRole.ADMIN });
-    await this.ensureUser({ email: 'scolarite@unigest.local', password: 'Scolarite123!', firstName: 'Agent', lastName: 'Scolarité', role: UserRole.SCOLARITE });
+    const allowKnownDemoAccounts = !production;
+    if (allowKnownDemoAccounts) {
+      await this.ensureUser({ email: 'admin@unigest.local', password: 'Admin123!', firstName: 'Administrateur', lastName: 'UniGest', role: UserRole.ADMIN });
+      await this.ensureUser({ email: 'scolarite@unigest.local', password: 'Scolarite123!', firstName: 'Agent', lastName: 'Scolarité', role: UserRole.SCOLARITE });
+    }
 
     let year = await this.years.findOne({ where: { label: '2026/2027' } });
     if (!year) year = await this.years.save(this.years.create({ label: '2026/2027', startsOn: '2026-09-01', endsOn: '2027-08-31', active: true }));
@@ -148,8 +151,10 @@ export class SeedService implements OnApplicationBootstrap {
     let student = await this.students.findOne({ where: { studentNumber: 'ETU-001' } });
     if (!student) student = await this.students.save(this.students.create({ studentNumber: 'ETU-001', firstName: 'Étudiant', lastName: 'Démo', email: 'etudiant@unigest.local', program }));
 
-    await this.ensureUser({ email: 'enseignant@unigest.local', password: 'Teacher123!', firstName: teacher.firstName, lastName: teacher.lastName, role: UserRole.TEACHER, teacherProfile: teacher });
-    await this.ensureUser({ email: 'etudiant@unigest.local', password: 'Student123!', firstName: student.firstName, lastName: student.lastName, role: UserRole.STUDENT, studentProfile: student });
+    if (allowKnownDemoAccounts) {
+      await this.ensureUser({ email: 'enseignant@unigest.local', password: 'Teacher123!', firstName: teacher.firstName, lastName: teacher.lastName, role: UserRole.TEACHER, teacherProfile: teacher });
+      await this.ensureUser({ email: 'etudiant@unigest.local', password: 'Student123!', firstName: student.firstName, lastName: student.lastName, role: UserRole.STUDENT, studentProfile: student });
+    }
 
     let group = await this.groups.findOne({ where: { name: 'DGI-1A-A', academicYear: { id: year.id }, program: { id: program.id } } });
     if (!group) group = await this.groups.save(this.groups.create({ name: 'DGI-1A-A', level: 1, academicYear: year, program, academicLevel: level }));
