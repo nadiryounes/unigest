@@ -279,6 +279,16 @@ describe('UniGest API functional flows (e2e)', () => {
       })
       .expect(400);
 
+    await request(app.getHttpServer())
+      .post(`/admissions/public/applications/${application.body.applicationNumber}/documents`)
+      .field('email', email)
+      .field('type', 'DIPLOMA')
+      .attach('file', Buffer.from('not-really-a-pdf'), {
+        filename: 'spoofed.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(400);
+
     const adminApplications = (await request(app.getHttpServer())
       .get('/admissions/applications')
       .set('Authorization', `Bearer ${adminToken}`)
