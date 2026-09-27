@@ -1,4 +1,4 @@
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import { BadRequestException, Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
@@ -53,6 +53,10 @@ export class SeedService implements OnApplicationBootstrap {
   }
 
   async onApplicationBootstrap() {
+    // Vercel initialise TypeORM à la première requête HTTP.
+    // Le seed automatique est donc réservé au développement/local.
+    if (process.env.VERCEL) return;
+
     try {
       await this.runBootstrap();
     } catch (error) {
@@ -60,9 +64,49 @@ export class SeedService implements OnApplicationBootstrap {
     }
   }
 
-  private async runBootstrap() {
+  async demoStatus() {
+    const [students, teachers, programs, years, campaigns, demoAdmin] = await Promise.all([
+      this.students.count({ where: { studentNumber: 'ETU-001' } }),
+      this.teachers.count({ where: { employeeNumber: 'ENS-001' } }),
+      this.programs.count({ where: { code: 'DGI' } }),
+      this.years.count({ where: { label: '2026/2027' } }),
+      this.campaigns.count({ where: { name: 'Admissions DGI 2026/2027' } }),
+      this.users.count({ where: { email: 'admin@unigest.local' } }),
+    ]);
+
+    return {
+      enabled: String(process.env.DEMO_SEED_ENABLED || '').toLowerCase() === 'true',
+      loaded: students > 0 && teachers > 0 && programs > 0 && years > 0,
+      indicators: {
+        student: students > 0,
+        teacher: teachers > 0,
+        program: programs > 0,
+        academicYear: years > 0,
+        campaign: campaigns > 0,
+        demoAdmin: demoAdmin > 0,
+      },
+    };
+  }
+
+  async loadDemoData() {
+    const enabled = String(process.env.DEMO_SEED_ENABLED || '').toLowerCase() === 'true';
+    if (process.env.NODE_ENV === 'production' && !enabled) {
+      throw new BadRequestException(
+        'Le chargement des données de démonstration est désactivé. Définissez DEMO_SEED_ENABLED=true pour ce déploiement de test.',
+      );
+    }
+
+    await this.runBootstrap(true);
+    return {
+      ...(await this.demoStatus()),
+      message: 'Données de démonstration chargées ou vérifiées avec succès.',
+    };
+  }
+
+  private async runBootstrap(forceDemo = false) {
     const production = process.env.NODE_ENV === 'production';
     const demoSeedEnabled =
+      forceDemo ||
       String(process.env.DEMO_SEED_ENABLED ?? (production ? 'false' : 'true')).toLowerCase() === 'true';
 
     const bootstrapEmail = String(process.env.BOOTSTRAP_ADMIN_EMAIL || '').trim().toLowerCase();
