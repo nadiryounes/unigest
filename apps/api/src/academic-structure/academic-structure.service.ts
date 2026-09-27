@@ -44,25 +44,60 @@ export class AcademicStructureService {
 
   async createElement(body: any) {
     const module = await this.moduleRepo.findOne({ where: { id: body.moduleId } });
-    const teacher = body.teacherId ? await this.teacherRepo.findOne({ where: { id: body.teacherId } }) : undefined;
+    const teacher = body.teacherId
+      ? (await this.teacherRepo.findOne({ where: { id: body.teacherId } })) ?? undefined
+      : undefined;
+
     if (!module) throw new NotFoundException('Module introuvable');
     if (body.teacherId && !teacher) throw new NotFoundException('Enseignant introuvable');
+
     const coefficient = Number(body.coefficient ?? 1);
     const volumeHours = Number(body.volumeHours ?? 0);
     if (coefficient <= 0 || volumeHours < 0) throw new BadRequestException('Coefficient ou volume horaire invalide');
-    return this.elementRepo.save(this.elementRepo.create({ code: body.code, name: body.name, coefficient, volumeHours, active: body.active !== false, module, teacher }));
+
+    return this.elementRepo.save(
+      this.elementRepo.create({
+        code: body.code,
+        name: body.name,
+        coefficient,
+        volumeHours,
+        active: body.active !== false,
+        module,
+        teacher,
+      }),
+    );
   }
 
   async createRule(body: any) {
     const type = String(body.type) as ValidationRuleType;
     if (!Object.values(ValidationRuleType).includes(type)) throw new BadRequestException('Type de règle invalide');
-    const program = body.programId ? await this.programRepo.findOne({ where: { id: body.programId } }) : undefined;
-    const level = body.levelId ? await this.levelRepo.findOne({ where: { id: body.levelId } }) : undefined;
+
+    const program = body.programId
+      ? (await this.programRepo.findOne({ where: { id: body.programId } })) ?? undefined
+      : undefined;
+    const level = body.levelId
+      ? (await this.levelRepo.findOne({ where: { id: body.levelId } })) ?? undefined
+      : undefined;
+
     if (body.programId && !program) throw new NotFoundException('Filière introuvable');
     if (body.levelId && !level) throw new NotFoundException('Niveau introuvable');
     if (level && program && level.program.id !== program.id) throw new BadRequestException('Le niveau ne correspond pas à la filière');
+
     const numericValue = body.numericValue === '' || body.numericValue === undefined ? undefined : Number(body.numericValue);
-    const booleanValue = body.booleanValue === '' || body.booleanValue === undefined ? undefined : [true, 'true', 1, '1'].includes(body.booleanValue);
-    return this.ruleRepo.save(this.ruleRepo.create({ type, numericValue, booleanValue, parameters: body.parameters || undefined, active: body.active !== false, program: program || level?.program, level }));
+    const booleanValue = body.booleanValue === '' || body.booleanValue === undefined
+      ? undefined
+      : [true, 'true', 1, '1'].includes(body.booleanValue);
+
+    return this.ruleRepo.save(
+      this.ruleRepo.create({
+        type,
+        numericValue,
+        booleanValue,
+        parameters: body.parameters || undefined,
+        active: body.active !== false,
+        program: program || level?.program,
+        level,
+      }),
+    );
   }
 }
