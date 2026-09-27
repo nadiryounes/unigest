@@ -20,14 +20,15 @@ export class StorageService {
         'SUPABASE_URL et SUPABASE_SECRET_KEY (ou la clé legacy service_role) sont requis lorsque STORAGE_DRIVER=supabase',
       );
     }
+
     const headers: Record<string, string> = {
       apikey: this.supabaseKey,
     };
-    // Legacy service_role keys are JWTs and may also be sent as Bearer tokens.
-    // New sb_secret_* keys are opaque API keys and must not be used as Bearer JWTs.
+
     if (!this.supabaseKey.startsWith('sb_secret_')) {
       headers.Authorization = `Bearer ${this.supabaseKey}`;
     }
+
     if (contentType) headers['Content-Type'] = contentType;
     return headers;
   }
@@ -58,6 +59,7 @@ export class StorageService {
       `${this.supabaseUrl}/storage/v1/bucket/${encodeURIComponent(this.bucket)}`,
       { headers },
     );
+
     if (check.ok) return;
     if (check.status !== 404) {
       throw new Error(`Supabase Storage indisponible (${check.status})`);
@@ -90,13 +92,15 @@ export class StorageService {
     }
 
     await this.ensureReady();
+    const payload = Uint8Array.from(buffer).buffer;
+
     const response = await fetch(this.objectUrl(storageKey), {
       method: 'POST',
       headers: {
         ...this.supabaseHeaders(mimeType),
         'x-upsert': 'false',
       },
-      body: buffer,
+      body: payload,
     });
 
     if (!response.ok) {
@@ -105,6 +109,7 @@ export class StorageService {
         `Échec du stockage de la pièce (${response.status}) ${details}`.trim(),
       );
     }
+
     return storageKey;
   }
 
@@ -121,6 +126,7 @@ export class StorageService {
     if (!response.ok) {
       throw new InternalServerErrorException(`Impossible de lire la pièce (${response.status})`);
     }
+
     return Buffer.from(await response.arrayBuffer());
   }
 
