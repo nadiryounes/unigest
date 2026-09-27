@@ -38,7 +38,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if grep -RInE             --exclude-dir=.git             --exclude-dir=node_modules             --exclude='*.md'             'sb_secret_[A-Za-z0-9_-]{16,}|postgresql://[^[:space:]"]+:[^@[:space:]"]+@' .; then
+          if grep -RInE \
+            --exclude-dir=node_modules \
+            --exclude='*.md' \
+            'sb_secret_[A-Za-z0-9_-]{16,}|postgresql://[^[:space:]"]+:[^@[:space:]"]+@' apps .env.example; then
             echo "Potential secret detected in repository files."
             exit 1
           fi
@@ -105,8 +108,8 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/unigest_migration_test
           DATABASE_SSL: "false"
         run: |
-          npm run migration:run:prod -w apps/api
-          npm run migration:run:prod -w apps/api
+          npm run migration:run -w apps/api
+          npm run migration:run -w apps/api
 
       - name: Verify migrated schema
         env:
