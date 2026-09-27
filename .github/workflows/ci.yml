@@ -230,3 +230,95 @@ jobs:
           grep -qi '^x-content-type-options: nosniff' <(curl -sSI http://127.0.0.1:4000/health)
 
           kill "$WEB_PID" "$API_PID" || true
+
+
+  browser-e2e:
+    name: Chromium browser E2E
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: unigest_browser
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build API and Web
+        env:
+          NEXT_PUBLIC_API_URL: http://127.0.0.1:4000
+        run: |
+          npm run build -w apps/api
+          npm run build -w apps/web
+
+      - name: Start test servers and run browser suite
+        shell: bash
+        env:
+          NODE_ENV: test
+          DATABASE_HOST: 127.0.0.1
+          DATABASE_PORT: "5432"
+          DATABASE_USER: postgres
+          DATABASE_PASSWORD: postgres
+          DATABASE_NAME: unigest_browser
+          DATABASE_SSL: "false"
+          DB_SYNCHRONIZE: "true"
+          JWT_SECRET: browser-test-jwt-secret-that-is-long-enough
+          BOOTSTRAP_ADMIN_EMAIL: browser-admin@unigest.test
+          BOOTSTRAP_ADMIN_PASSWORD: BrowserAdminPassword123!
+          BOOTSTRAP_ADMIN_FIRST_NAME: Browser
+          BOOTSTRAP_ADMIN_LAST_NAME: Admin
+          DEMO_SEED_ENABLED: "false"
+          STORAGE_DRIVER: local
+          LOCAL_UPLOAD_DIR: /tmp/unigest-browser-uploads
+          CORS_ORIGINS: http://127.0.0.1:3000
+          API_PORT: "4000"
+          NEXT_PUBLIC_API_URL: http://127.0.0.1:4000
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+        run: |
+          set -euo pipefail
+          npm run start:prod -w apps/api > /tmp/browser-api.log 2>&1 &
+          API_PID=$!
+          npm run start -w apps/web -- -p 3000 > /tmp/browser-web.log 2>&1 &
+          WEB_PID=$!
+          trap 'kill "$WEB_PID" "$API_PID" 2>/dev/null || true' EXIT
+
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:4000/health >/dev/null && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:4000/health >/dev/null || {
+            cat /tmp/browser-api.log
+            exit 1
+          }
+
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:3000/ >/dev/null && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:3000/ >/dev/null || {
+            cat /tmp/browser-web.log
+            exit 1
+          }
+
+          npm run test:browser -w apps/web
