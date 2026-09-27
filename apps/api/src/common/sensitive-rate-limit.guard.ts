@@ -34,6 +34,13 @@ export class SensitiveRateLimitGuard implements CanActivate {
       match: (path) => path === '/auth/forgot-password',
     },
     {
+      scope: 'auth-reset-password',
+      limit: 10,
+      windowMs: 15 * 60 * 1000,
+      method: 'POST',
+      match: (path) => path === '/auth/reset-password',
+    },
+    {
       scope: 'public-application',
       limit: 20,
       windowMs: 60 * 60 * 1000,
@@ -94,6 +101,10 @@ export class SensitiveRateLimitGuard implements CanActivate {
 
     const rows = await this.dataSource.query(
       `
+      WITH cleanup AS (
+        DELETE FROM "request_rate_limits"
+        WHERE "windowStart" < NOW() - INTERVAL '2 days'
+      )
       INSERT INTO "request_rate_limits" ("scope", "keyHash", "windowStart", "count")
       VALUES ($1, $2, $3, 1)
       ON CONFLICT ("scope", "keyHash", "windowStart")
