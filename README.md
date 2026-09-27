@@ -1,133 +1,117 @@
-# UniGest MVP v0.4.1 Cloud Ready
+# UniGest v0.5.0 Core
 
-UniGest est un prototype de système d'information universitaire. La v0.4.1 comprend les éléments nécessaires à un déploiement de test avec Vercel et Supabase.
+UniGest est un prototype de système d'information universitaire construit avec Next.js, NestJS, TypeORM, PostgreSQL et Supabase Storage.
 
-## Architecture cloud recommandée
+## Architecture de test actuelle
 
 ```text
 Vercel
-  +-- NestJS API (apps/api)
-  |      +--> Supabase PostgreSQL
-  |      +--> Supabase Storage
+  +-- unigest-web  (apps/web, Next.js)
   |
-  +-- Next.js Web (apps/web)
+  +-- unigest-api  (apps/api, NestJS)
+         |
+         +--> Supabase PostgreSQL
+         +--> Supabase Storage
 ```
 
-Le même dépôt GitHub est importé deux fois dans Vercel, avec une Root Directory différente pour chaque projet.
+Sur Vercel, TypeORM est initialisé à la première requête HTTP afin d'éviter de bloquer le démarrage serverless. Pour Supabase, UniGest bascule automatiquement du Session pooler `:5432` vers le Transaction pooler `:6543` lorsqu'il détecte l'environnement Vercel.
 
-## Fonctions cloud
+## Nouveautés v0.5.0
 
-- `DATABASE_URL` pour PostgreSQL distant ;
-- SSL PostgreSQL configurable ;
-- migrations TypeORM pour une base vierge ;
-- exécution automatique des migrations lors du build Vercel de l'API ;
-- stockage abstrait `local` ou `supabase` ;
-- bucket Supabase privé pour les pièces de candidature ;
-- téléchargement des pièces par l'API authentifiée ;
-- endpoint `/health` pour PostgreSQL et le stockage ;
-- CORS limité aux origines configurées ;
-- frontend Next.js déployable depuis `apps/web` ;
-- backend NestJS déployable nativement depuis `apps/api` ;
-- seed de démonstration désactivé automatiquement en production ;
-- administrateur initial configurable par variables d'environnement.
+- tableau de bord enrichi avec activité académique et admissions ;
+- indicateurs de candidatures à traiter, campagnes ouvertes et séances du jour ;
+- répartition des candidatures par statut ;
+- répartition des étudiants par filière ;
+- dernières candidatures et prochaines séances ;
+- chargement explicite et idempotent des données de démonstration ;
+- recherche, tri, pagination et export CSV sur les listes CRUD ;
+- navigation active et version UI `v0.5.0` ;
+- CI GitHub permanente pour compiler l'API et le frontend à chaque push/PR ;
+- documentation alignée sur le déploiement Vercel + Supabase actuel.
 
 ## Modules disponibles
 
 - authentification JWT et rôles ADMIN, SCOLARITE, TEACHER, STUDENT ;
-- comptes liés aux dossiers étudiant/enseignant ;
-- filières, années universitaires, niveaux, semestres, groupes ;
+- comptes liés aux profils étudiant/enseignant ;
+- années universitaires, filières, niveaux, semestres et groupes ;
 - modules et éléments de module ;
 - étudiants, enseignants et inscriptions ;
-- évaluations, notes, absences et emplois du temps ;
-- détection des conflits salle/enseignant/groupe ;
-- règles de validation configurables et délibérations préparatoires ;
-- relevés/PV imprimables depuis le navigateur ;
-- journal d'audit des écritures ;
-- campagnes de candidature, filières ouvertes, dépôt de dossier, suivi, présélection, décision et conversion en étudiant.
+- évaluations, notes, absences et emploi du temps ;
+- règles de validation et délibérations préparatoires ;
+- candidatures, admissions et conversion en étudiant ;
+- documents imprimables depuis le navigateur ;
+- journal d'audit ;
+- espace enseignant/étudiant ;
+- stockage Supabase privé pour les pièces de candidature.
 
-## Démarrage local
+## Développement local
 
 ```bash
 cp .env.example .env
 docker compose up --build
 ```
 
-Adresses locales :
+Services locaux :
 
-- Interface : `http://localhost:3000`
+- Web : `http://localhost:3000`
 - API : `http://localhost:4000`
-- Health check : `http://localhost:4000/health`
+- Health : `http://localhost:4000/health`
 - PostgreSQL : `localhost:5432`
 
-En développement, le seed de démonstration est activé par défaut.
-
-```text
-Administrateur : admin@unigest.local / Admin123!
-Scolarité      : scolarite@unigest.local / Scolarite123!
-Enseignant     : enseignant@unigest.local / Teacher123!
-Étudiant       : etudiant@unigest.local / Student123!
-```
-
-Ces comptes ne sont pas créés lorsque `NODE_ENV=production`, sauf si `DEMO_SEED_ENABLED=true` est explicitement défini.
-
-## Déploiement gratuit
+## Déploiement Vercel + Supabase
 
 Voir `DEPLOY_FREE.md`.
 
-## API sur Vercel
-
-Vercel prend en charge NestJS directement. Le projet API doit être importé avec :
+Les deux projets Vercel utilisent le même dépôt GitHub avec une Root Directory différente :
 
 ```text
-Root Directory : apps/api
+unigest-api  -> apps/api
+unigest-web  -> apps/web
 ```
 
-Le script `vercel-build` compile NestJS puis exécute les migrations TypeORM :
-
-```text
-npm run build && npm run migration:run:prod
-```
-
-## PostgreSQL cloud
-
-Si `DATABASE_URL` est défini, il est utilisé à la place de `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_USER`, `DATABASE_PASSWORD` et `DATABASE_NAME`.
-
-Exemple :
+Variables principales de l'API :
 
 ```env
+NODE_ENV=production
 DATABASE_URL=postgresql://...
 DATABASE_SSL=true
 DATABASE_SSL_REJECT_UNAUTHORIZED=false
 DB_SYNCHRONIZE=false
-```
 
-Pour Supabase sur un réseau IPv4, le Session pooler peut être utilisé.
+JWT_SECRET=...
 
-`DATABASE_SSL_REJECT_UNAUTHORIZED=false` chiffre la connexion sans vérifier le certificat serveur. Pour une vérification complète, fournir le certificat CA Supabase en base64 dans `DATABASE_SSL_CA_BASE64`.
+BOOTSTRAP_ADMIN_EMAIL=admin@example.org
+BOOTSTRAP_ADMIN_PASSWORD=mot-de-passe-long
+BOOTSTRAP_ADMIN_FIRST_NAME=Administrateur
+BOOTSTRAP_ADMIN_LAST_NAME=UniGest
 
-## Stockage des pièces
-
-### Local
-
-```env
-STORAGE_DRIVER=local
-LOCAL_UPLOAD_DIR=uploads
-```
-
-### Supabase Storage
-
-```env
 STORAGE_DRIVER=supabase
 SUPABASE_URL=https://PROJECT.supabase.co
 SUPABASE_SECRET_KEY=...
 SUPABASE_STORAGE_BUCKET=candidate-documents
+
+CORS_ORIGINS=https://unigest-web.vercel.app
+DEMO_SEED_ENABLED=false
 ```
 
-La clé secrète ne doit jamais être envoyée au frontend ni placée dans une variable `NEXT_PUBLIC_*`.
+Frontend :
 
-Le bucket est privé. L'API crée ou vérifie le bucket lors de l'utilisation du stockage.
+```env
+NEXT_PUBLIC_API_URL=https://unigest-api.vercel.app
+```
 
-## Base vierge et migrations
+## Migrations
+
+Les migrations TypeORM restent exécutées explicitement :
+
+```bash
+npm run build -w apps/api
+npm run migration:run:prod -w apps/api
+```
+
+Elles ne sont plus exécutées automatiquement à chaque build Vercel.
+
+Migrations actuelles :
 
 ```text
 1770000000000-V02BaseSchema
@@ -135,56 +119,41 @@ Le bucket est privé. L'API crée ou vérifie le bucket lors de l'utilisation du
 1790000000000-V04AcademicStructureAdmissions
 ```
 
-Exécution manuelle :
+## Données de démonstration
 
-```bash
-npm run build -w apps/api
-npm run migration:run:prod -w apps/api
-```
-
-Sur Vercel, cette opération est intégrée au build de l'API.
-
-## Administrateur initial en production
+En production/test, définir :
 
 ```env
-BOOTSTRAP_ADMIN_EMAIL=admin@example.org
-BOOTSTRAP_ADMIN_PASSWORD=un-mot-de-passe-long
-BOOTSTRAP_ADMIN_FIRST_NAME=Administrateur
-BOOTSTRAP_ADMIN_LAST_NAME=UniGest
-DEMO_SEED_ENABLED=false
+DEMO_SEED_ENABLED=true
 ```
 
-Le mot de passe bootstrap doit contenir au moins 12 caractères.
+Puis, connecté comme administrateur, utiliser le bouton **Charger les données de test** depuis le tableau de bord.
 
-## CORS
+Le chargement est idempotent : les mêmes objets de démonstration ne sont pas recréés à chaque appel.
 
-En production :
-
-```env
-CORS_ORIGINS=https://votre-frontend.vercel.app
-```
-
-Plusieurs origines exactes sont possibles, séparées par des virgules.
-
-## Portail de candidature
-
-- `/apply` : dépôt d'une candidature ;
-- `/application-status` : suivi par numéro de candidature et email.
-
-Les pièces acceptées sont PDF, JPEG et PNG, 10 Mo maximum par fichier.
-
-## Structure du projet
+Comptes de démonstration :
 
 ```text
-apps/
-  api/       NestJS + TypeORM
-  web/       Next.js
-render.yaml  configuration Render conservée comme solution alternative
-samples/     exemples d'import
-DEPLOY_FREE.md
-docker-compose.yml
+admin@unigest.local        / Admin123!
+scolarite@unigest.local   / Scolarite123!
+enseignant@unigest.local  / Teacher123!
+etudiant@unigest.local    / Student123!
 ```
 
-## Sécurité avant production réelle
+Après chargement des données, remettre `DEMO_SEED_ENABLED=false` pour empêcher un chargement accidentel ultérieur.
 
-La v0.4.1 reste une version de test. Avant une exploitation universitaire réelle, ajouter au minimum des tests E2E, sauvegardes, supervision, récupération de compte, 2FA, antivirus des fichiers entrants, limitation de débit, politique de conservation des données et audit de sécurité.
+## Sécurité
+
+La v0.5.0 reste une version de test. Avant exploitation réelle :
+
+- régénérer tous les secrets utilisés pendant les tests ;
+- activer récupération de compte et 2FA ;
+- renforcer le modèle rôles/permissions ;
+- ajouter limitation de débit ;
+- analyser les fichiers entrants ;
+- vérifier/restaurer les sauvegardes ;
+- centraliser logs et supervision ;
+- ajouter tests E2E et audit de sécurité ;
+- définir une politique de conservation/suppression des données.
+
+Ne jamais placer `SUPABASE_SECRET_KEY`, `DATABASE_URL` ou `JWT_SECRET` dans une variable `NEXT_PUBLIC_*`.
