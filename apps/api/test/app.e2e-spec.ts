@@ -131,6 +131,73 @@ describe('UniGest API functional flows (e2e)', () => {
       .expect(200);
   });
 
+  it('resets a password once and revokes the previous student session', async () => {
+    const forgot = await request(app.getHttpServer())
+      .post('/auth/forgot-password')
+      .send({ email: 'etudiant@unigest.local' })
+      .expect(201);
+
+    expect(forgot.body.resetToken).toEqual(expect.any(String));
+
+    await request(app.getHttpServer())
+      .post('/auth/reset-password')
+      .send({
+        token: forgot.body.resetToken,
+        newPassword: 'StudentPassword456!',
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .get('/portal/student/summary')
+      .set('Authorization', `Bearer ${studentToken}`)
+      .expect(401);
+
+    await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: 'etudiant@unigest.local', password: 'Student123!' })
+      .expect(401);
+
+    const relogin = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: 'etudiant@unigest.local',
+        password: 'StudentPassword456!',
+      })
+      .expect(201);
+
+    studentToken = relogin.body.accessToken;
+
+    await request(app.getHttpServer())
+      .post('/auth/reset-password')
+      .send({
+        token: forgot.body.resetToken,
+        newPassword: 'AnotherPassword456!',
+      })
+      .expect(400);
+  });
+
+  it('revokes all teacher sessions without changing the password', async () => {
+    const oldToken = teacherToken;
+
+    await request(app.getHttpServer())
+      .post('/auth/logout-all')
+      .set('Authorization', `Bearer ${oldToken}`)
+      .send({})
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .get('/portal/teacher/summary')
+      .set('Authorization', `Bearer ${oldToken}`)
+      .expect(401);
+
+    const relogin = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: 'enseignant@unigest.local', password: 'Teacher123!' })
+      .expect(201);
+
+    teacherToken = relogin.body.accessToken;
+  });
+
   it('validates grade boundaries', async () => {
     const students = (await request(app.getHttpServer())
       .get('/students')
