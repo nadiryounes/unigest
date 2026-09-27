@@ -9,13 +9,18 @@ export class AuthService {
 
   async login(email: string, password: string) {
     const normalizedEmail = String(email || '').trim().toLowerCase();
-    let user = await this.users.findByEmail(normalizedEmail);
-
-    if (!user || !user.active || !(await bcrypt.compare(password, user.passwordHash))) {
-      user = (await this.users.ensureBootstrapAdmin(normalizedEmail, password)) ?? null;
+    const normalizedPassword = String(password || '');
+    if (!normalizedEmail || !normalizedPassword) {
+      throw new UnauthorizedException('Identifiants invalides');
     }
 
-    if (!user || !user.active || !(await bcrypt.compare(password, user.passwordHash))) {
+    let user = await this.users.findByEmail(normalizedEmail);
+
+    if (!user || !user.active || !(await bcrypt.compare(normalizedPassword, user.passwordHash))) {
+      user = (await this.users.ensureBootstrapAdmin(normalizedEmail, normalizedPassword)) ?? null;
+    }
+
+    if (!user || !user.active || !(await bcrypt.compare(normalizedPassword, user.passwordHash))) {
       throw new UnauthorizedException('Identifiants invalides');
     }
 
