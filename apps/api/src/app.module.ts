@@ -44,6 +44,7 @@ import { ApplicationCampaign } from './entities/application-campaign.entity';
 import { Candidate } from './entities/candidate.entity';
 import { Application } from './entities/application.entity';
 import { CandidateDocument } from './entities/candidate-document.entity';
+import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { SeedService } from './common/seed.service';
 import { StorageModule } from './storage/storage.module';
 import { HealthModule } from './health/health.module';
@@ -72,6 +73,7 @@ const entities = [
   Candidate,
   Application,
   CandidateDocument,
+  PasswordResetToken,
 ];
 
 @Module({
