@@ -59,9 +59,14 @@ export class UsersService {
 
   async create(body: any) {
     const role = String(body.role || UserRole.STUDENT) as UserRole;
+    const email = String(body.email || '').trim().toLowerCase();
+    const firstName = String(body.firstName || '').trim();
+    const lastName = String(body.lastName || '').trim();
     if (!Object.values(UserRole).includes(role)) throw new BadRequestException('Rôle invalide');
-    if (!body.password || String(body.password).length < 8) throw new BadRequestException('Le mot de passe doit contenir au moins 8 caractères');
-    if (await this.findByEmail(body.email)) throw new BadRequestException('Un compte utilise déjà cet email');
+    if (!email || !/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(email)) throw new BadRequestException('Email invalide');
+    if (!firstName || !lastName) throw new BadRequestException('Prénom et nom requis');
+    if (!body.password || String(body.password).length < 12) throw new BadRequestException('Le mot de passe doit contenir au moins 12 caractères');
+    if (await this.findByEmail(email)) throw new BadRequestException('Un compte utilise déjà cet email');
 
     let studentProfile: Student | undefined;
     let teacherProfile: Teacher | undefined;
@@ -75,10 +80,10 @@ export class UsersService {
     if (teacherProfile && await this.repo.findOne({ where: { teacherProfile: { id: teacherProfile.id } } })) throw new BadRequestException('Ce dossier enseignant est déjà lié à un compte');
 
     const saved = await this.repo.save(this.repo.create({
-      email: String(body.email).trim().toLowerCase(),
+      email,
       passwordHash: await bcrypt.hash(String(body.password), 12),
-      firstName: body.firstName,
-      lastName: body.lastName,
+      firstName,
+      lastName,
       role,
       active: body.active !== false,
       studentProfile,
