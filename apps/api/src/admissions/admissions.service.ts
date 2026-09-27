@@ -71,7 +71,23 @@ export class AdmissionsService {
   }
 
   private applicationNumber() {
-    return `APP-${new Date().getUTCFullYear()}-${Date.now().toString(36).toUpperCase()}-${randomBytes(2).toString('hex').toUpperCase()}`;
+    return `APP-${new Date().getUTCFullYear()}-${Date.now().toString(36).toUpperCase()}-${randomBytes(6).toString('hex').toUpperCase()}`;
+  }
+
+  private validateDocumentSignature(mimeType: string, buffer: Buffer) {
+    const pdf = buffer.length >= 5 && buffer.subarray(0, 5).toString('ascii') === '%PDF-';
+    const jpeg = buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+    const pngSignature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+    const png = buffer.length >= 8 && pngSignature.every((value, index) => buffer[index] === value);
+
+    const valid =
+      (mimeType === 'application/pdf' && pdf) ||
+      (mimeType === 'image/jpeg' && jpeg) ||
+      (mimeType === 'image/png' && png);
+
+    if (!valid) {
+      throw new BadRequestException('Le contenu du fichier ne correspond pas au format déclaré');
+    }
   }
 
   async submitApplication(body: any) {
@@ -93,6 +109,9 @@ export class AdmissionsService {
     const minAverage = Number((campaign.eligibilityRules as any)?.minAverage ?? 0);
     const average = Number(body.average ?? body.formData?.average ?? 0);
     const hasAverage = body.average !== undefined || body.formData?.average !== undefined;
+    if (hasAverage && (!Number.isFinite(average) || average < 0 || average > 20)) {
+      throw new BadRequestException('La moyenne doit être comprise entre 0 et 20');
+    }
     const status = !hasAverage ? ApplicationStatus.SUBMITTED : minAverage > 0 && average < minAverage ? ApplicationStatus.INELIGIBLE : ApplicationStatus.ELIGIBLE;
     const formData = { ...(body.formData || {}), average: Number.isFinite(average) ? average : undefined, diploma: body.diploma, graduationYear: body.graduationYear };
     const application = await this.applicationRepo.save(this.applicationRepo.create({ applicationNumber: this.applicationNumber(), candidate, campaign, program, status, formData }));
@@ -113,6 +132,7 @@ export class AdmissionsService {
     if (!application || application.candidate.email.toLowerCase() !== String(email || '').trim().toLowerCase()) throw new NotFoundException('Candidature introuvable');
     const allowed = new Set(['application/pdf', 'image/jpeg', 'image/png']);
     if (!allowed.has(file.mimetype)) throw new BadRequestException('Formats acceptés : PDF, JPEG, PNG');
+    this.validateDocumentSignature(file.mimetype, file.buffer);
     const extension = file.mimetype === 'application/pdf' ? '.pdf' : file.mimetype === 'image/png' ? '.png' : '.jpg';
     const storageKey = `candidates/${application.id}/${Date.now()}-${randomBytes(4).toString('hex')}${extension}`;
     await this.storage.save(storageKey, file.buffer, file.mimetype);
@@ -134,7 +154,13 @@ export class AdmissionsService {
     if (!Object.values(ApplicationStatus).includes(status)) throw new BadRequestException('Statut invalide');
     application.status = status;
     if (decisionNote !== undefined) application.decisionNote = decisionNote;
-    if (score !== undefined && score !== null && score !== ('' as any)) application.score = Number(score);
+    if (score !== undefined && score !== null && score !== ('' as any)) {
+      const numericScore = Number(score);
+      if (!Number.isFinite(numericScore) || numericScore < 0 || numericScore > 20) {
+        throw new BadRequestException('Score invalide (0-20)');
+      }
+      application.score = numericScore;
+    }
     return this.applicationRepo.save(application);
   }
 
@@ -187,7 +213,7 @@ export class AdmissionsService {
     else if (group && enrollment.group?.id !== group.id) { enrollment.group = group; enrollment = await this.enrollmentRepo.save(enrollment); }
     let accountCreated = false;
     if (body.createAccount !== false && !(await this.users.findByEmail(student.email))) {
-      if (!body.temporaryPassword || String(body.temporaryPassword).length < 8) throw new BadRequestException('Un mot de passe temporaire de 8 caractères minimum est requis pour créer le compte');
+      if (!body.temporaryPassword || String(body.temporaryPassword).length < 12) throw new BadRequestException('Un mot de passe temporaire de 12 caractères minimum est requis pour créer le compte');
       await this.users.create({ email: student.email, password: body.temporaryPassword, firstName: student.firstName, lastName: student.lastName, role: UserRole.STUDENT, studentProfileId: student.id });
       accountCreated = true;
     }
