@@ -71,7 +71,6 @@ describe('CrudPage generic list behavior', () => {
     expect(screen.getByText('ETU-011')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Matricule/ }));
-    fireEvent.click(screen.getByRole('button', { name: /Matricule/ }));
 
     await waitFor(() => {
       const body = screen.getByRole('table').querySelector('tbody');
