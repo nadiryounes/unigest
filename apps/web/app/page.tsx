@@ -64,8 +64,9 @@ export default function Login() {
           <p className="muted">Administration, scolarité, enseignant ou étudiant</p>
 
           <div className="field">
-            <label>Email</label>
+            <label htmlFor="login-email">Email</label>
             <input
+              id="login-email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               type="email"
@@ -75,8 +76,9 @@ export default function Login() {
           </div>
 
           <div className="field">
-            <label>Mot de passe</label>
+            <label htmlFor="login-password">Mot de passe</label>
             <input
+              id="login-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               type="password"
