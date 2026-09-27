@@ -258,5 +258,70 @@ describe('UniGest API functional flows (e2e)', () => {
         email: 'wrong@example.test',
       })
       .expect(404);
+
+    await request(app.getHttpServer())
+      .post(`/admissions/public/applications/${application.body.applicationNumber}/documents`)
+      .field('email', email)
+      .field('type', 'DIPLOMA')
+      .attach('file', Buffer.from('%PDF-1.4 audit document'), {
+        filename: 'diploma.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post(`/admissions/public/applications/${application.body.applicationNumber}/documents`)
+      .field('email', email)
+      .field('type', 'OTHER')
+      .attach('file', Buffer.from('executable-test'), {
+        filename: 'payload.exe',
+        contentType: 'application/octet-stream',
+      })
+      .expect(400);
+
+    const adminApplications = (await request(app.getHttpServer())
+      .get('/admissions/applications')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200)).body;
+
+    const persisted = adminApplications.find(
+      (row: any) => row.applicationNumber === application.body.applicationNumber,
+    );
+    expect(persisted).toBeDefined();
+    expect(persisted.documents).toHaveLength(1);
+
+    const download = await request(app.getHttpServer())
+      .get(`/admissions/applications/${persisted.id}/documents/${persisted.documents[0].id}/download`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+
+    expect(download.headers['content-type']).toContain('application/pdf');
+
+    await request(app.getHttpServer())
+      .patch(`/admissions/applications/${persisted.id}/status`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ status: 'ADMITTED', decisionNote: 'Audit acceptance' })
+      .expect(200);
+
+    const studentNumber = `AUD-${Date.now()}`;
+    const converted = await request(app.getHttpServer())
+      .post(`/admissions/applications/${persisted.id}/convert`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        studentNumber,
+        createAccount: true,
+        temporaryPassword: 'CandidatePassword123!',
+      })
+      .expect(201);
+
+    expect(converted.body.accountCreated).toBe(true);
+    expect(converted.body.student.studentNumber).toBe(studentNumber);
+
+    const candidateLogin = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email, password: 'CandidatePassword123!' })
+      .expect(201);
+
+    expect(candidateLogin.body.user.role).toBe('STUDENT');
   });
 });
