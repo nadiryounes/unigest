@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { StudentsModule } from './students/students.module';
@@ -48,19 +48,43 @@ import { SeedService } from './common/seed.service';
 import { StorageModule } from './storage/storage.module';
 import { HealthModule } from './health/health.module';
 
-const entities = [User, Student, Teacher, Program, AcademicModule, Enrollment, ClassSession, Attendance, Grade, AcademicYear, StudentGroup, Assessment, AuditLog, AcademicLevel, AcademicSemester, ModuleElement, ValidationRule, ApplicationCampaign, Candidate, Application, CandidateDocument];
+const entities = [
+  User,
+  Student,
+  Teacher,
+  Program,
+  AcademicModule,
+  Enrollment,
+  ClassSession,
+  Attendance,
+  Grade,
+  AcademicYear,
+  StudentGroup,
+  Assessment,
+  AuditLog,
+  AcademicLevel,
+  AcademicSemester,
+  ModuleElement,
+  ValidationRule,
+  ApplicationCampaign,
+  Candidate,
+  Application,
+  CandidateDocument,
+];
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => {
+      useFactory: (config: ConfigService): TypeOrmModuleOptions => {
         const databaseUrl = config.get<string>('DATABASE_URL');
-        const sslEnabled = String(config.get('DATABASE_SSL', databaseUrl ? 'true' : 'false')).toLowerCase() === 'true';
+        const sslEnabled =
+          String(config.get<string>('DATABASE_SSL') ?? (databaseUrl ? 'true' : 'false')).toLowerCase() === 'true';
         const rejectUnauthorized =
-          String(config.get('DATABASE_SSL_REJECT_UNAUTHORIZED', 'false')).toLowerCase() === 'true';
+          String(config.get<string>('DATABASE_SSL_REJECT_UNAUTHORIZED') ?? 'false').toLowerCase() === 'true';
         const caBase64 = config.get<string>('DATABASE_SSL_CA_BASE64');
+
         const ssl = sslEnabled
           ? {
               rejectUnauthorized: caBase64 ? true : rejectUnauthorized,
@@ -68,20 +92,27 @@ const entities = [User, Student, Teacher, Program, AcademicModule, Enrollment, C
             }
           : false;
 
-        return {
+        const common = {
           type: 'postgres' as const,
-          ...(databaseUrl
-            ? { url: databaseUrl }
-            : {
-                host: config.get('DATABASE_HOST', 'localhost'),
-                port: Number(config.get('DATABASE_PORT', 5432)),
-                username: config.get('DATABASE_USER', 'unigest'),
-                password: config.get('DATABASE_PASSWORD', 'unigest'),
-                database: config.get('DATABASE_NAME', 'unigest'),
-              }),
           ssl,
           entities,
-          synchronize: String(config.get('DB_SYNCHRONIZE', 'false')).toLowerCase() === 'true',
+          synchronize: String(config.get<string>('DB_SYNCHRONIZE') ?? 'false').toLowerCase() === 'true',
+        };
+
+        if (databaseUrl) {
+          return {
+            ...common,
+            url: databaseUrl,
+          };
+        }
+
+        return {
+          ...common,
+          host: config.get<string>('DATABASE_HOST') || 'localhost',
+          port: Number(config.get<string>('DATABASE_PORT') || 5432),
+          username: config.get<string>('DATABASE_USER') || 'unigest',
+          password: config.get<string>('DATABASE_PASSWORD') || 'unigest',
+          database: config.get<string>('DATABASE_NAME') || 'unigest',
         };
       },
     }),
