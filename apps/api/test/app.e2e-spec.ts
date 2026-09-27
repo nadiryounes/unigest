@@ -154,7 +154,7 @@ describe('UniGest API functional flows (e2e)', () => {
 
   it('detects timetable conflicts for the same room', async () => {
     const modules = (await request(app.getHttpServer())
-      .get('/modules')
+      .get('/academic-modules')
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200)).body;
     const groups = (await request(app.getHttpServer())
@@ -321,8 +321,13 @@ describe('UniGest API functional flows (e2e)', () => {
         studentNumber,
         createAccount: true,
         temporaryPassword: 'CandidatePassword123!',
-      })
-      .expect(201);
+      });
+
+    if (converted.status !== 201) {
+      throw new Error(
+        `Conversion admission→étudiant échouée (${converted.status}): ${JSON.stringify(converted.body)}`,
+      );
+    }
 
     expect(converted.body.accountCreated).toBe(true);
     expect(converted.body.student.studentNumber).toBe(studentNumber);
