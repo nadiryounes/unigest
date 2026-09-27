@@ -53,6 +53,14 @@ export class SeedService implements OnApplicationBootstrap {
   }
 
   async onApplicationBootstrap() {
+    try {
+      await this.runBootstrap();
+    } catch (error) {
+      console.error('UniGest bootstrap seed skipped:', error);
+    }
+  }
+
+  private async runBootstrap() {
     const production = process.env.NODE_ENV === 'production';
     const demoSeedEnabled =
       String(process.env.DEMO_SEED_ENABLED ?? (production ? 'false' : 'true')).toLowerCase() === 'true';
