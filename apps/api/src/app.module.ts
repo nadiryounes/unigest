@@ -78,7 +78,11 @@ const entities = [
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService): TypeOrmModuleOptions => {
-        const databaseUrl = config.get<string>('DATABASE_URL');
+        const configuredDatabaseUrl = config.get<string>('DATABASE_URL');
+        const databaseUrl =
+          process.env.VERCEL && configuredDatabaseUrl?.includes('.pooler.supabase.com:5432/')
+            ? configuredDatabaseUrl.replace(':5432/', ':6543/')
+            : configuredDatabaseUrl;
         const sslEnabled =
           String(config.get<string>('DATABASE_SSL') ?? (databaseUrl ? 'true' : 'false')).toLowerCase() === 'true';
         const rejectUnauthorized =
@@ -101,6 +105,7 @@ const entities = [
           retryDelay: 1000,
           extra: {
             connectionTimeoutMillis: process.env.NODE_ENV === 'production' ? 5000 : 10000,
+            max: process.env.VERCEL ? 1 : 10,
           },
         };
 
