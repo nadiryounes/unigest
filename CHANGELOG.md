@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.5.1 — Production Hardening
+
+### Authentification et sessions
+
+- Verrouillage temporaire après échecs répétés de connexion.
+- Versionnement des JWT et révocation globale des sessions.
+- Changement de mot de passe authentifié.
+- Récupération de compte par jeton opaque à usage unique, expiration 30 minutes.
+- Livraison optionnelle des liens de reset via Resend.
+
+### Protection des endpoints
+
+- Rate limiting persistant PostgreSQL compatible Vercel serverless.
+- Protection du login, reset, candidature publique, suivi et upload public.
+- CSP et headers de sécurité sur API et frontend.
+
+### Base de données
+
+- Migration `1800000000000-V051SecurityHardening`.
+- Ajout des colonnes `tokenVersion`, `failedLoginAttempts`, `lockedUntil`, `passwordChangedAt`.
+- Tables `password_reset_tokens` et `request_rate_limits`.
+
+### Qualité
+
+- Playwright Chromium ajouté aux tests.
+- E2E API étendus au reset et à la révocation JWT.
+- Tests unitaires dédiés au rate limiting et au versionnement des sessions.
+- CI production vérifie la migration v0.5.1 et les headers de sécurité.
+- Lockfile npm reproductible.
+
+# Changelog
+
 ## 0.5.0 — Core Operations
 
 ### Fiabilité cloud
