@@ -79,8 +79,9 @@ export default function AccountSecurityPage() {
         <h2>Changer le mot de passe</h2>
         <form className="form-grid" onSubmit={changePassword}>
           <div className="field">
-            <label>Mot de passe actuel</label>
+            <label htmlFor="current-password">Mot de passe actuel</label>
             <input
+              id="current-password"
               type="password"
               value={currentPassword}
               onChange={(event) => setCurrentPassword(event.target.value)}
@@ -89,8 +90,9 @@ export default function AccountSecurityPage() {
             />
           </div>
           <div className="field">
-            <label>Nouveau mot de passe</label>
+            <label htmlFor="new-password">Nouveau mot de passe</label>
             <input
+              id="new-password"
               type="password"
               value={newPassword}
               onChange={(event) => setNewPassword(event.target.value)}
@@ -100,8 +102,9 @@ export default function AccountSecurityPage() {
             />
           </div>
           <div className="field">
-            <label>Confirmation</label>
+            <label htmlFor="new-password-confirmation">Confirmation</label>
             <input
+              id="new-password-confirmation"
               type="password"
               value={confirmation}
               onChange={(event) => setConfirmation(event.target.value)}
