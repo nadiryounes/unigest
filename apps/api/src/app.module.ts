@@ -97,6 +97,11 @@ const entities = [
           ssl,
           entities,
           synchronize: String(config.get<string>('DB_SYNCHRONIZE') ?? 'false').toLowerCase() === 'true',
+          retryAttempts: process.env.NODE_ENV === 'production' ? 1 : 10,
+          retryDelay: 1000,
+          extra: {
+            connectionTimeoutMillis: process.env.NODE_ENV === 'production' ? 5000 : 10000,
+          },
         };
 
         if (databaseUrl) {
