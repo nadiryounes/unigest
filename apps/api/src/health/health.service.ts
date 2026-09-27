@@ -17,6 +17,14 @@ export class HealthService {
       status: storage.ready ? 'ok' : 'degraded',
       database: 'ok',
       storage,
+      passwordRecovery: {
+        provider: 'resend',
+        ready: Boolean(
+          String(process.env.RESEND_API_KEY || '').trim() &&
+            String(process.env.EMAIL_FROM || '').trim() &&
+            String(process.env.PASSWORD_RESET_WEB_URL || '').trim(),
+        ),
+      },
       uptimeSeconds: Math.round(process.uptime()),
       latencyMs: Date.now() - startedAt,
       version: '0.5.1',
