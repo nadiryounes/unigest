@@ -1,0 +1,5 @@
+"use client";
+import { useEffect, useState } from 'react';
+import Shell from '../../components/Shell';
+import { api } from '../../lib';
+export default function Dashboard(){const[s,setS]=useState<any>({});useEffect(()=>{api('/dashboard/stats').then(setS).catch(()=>{})},[]);const cards=[['Étudiants',s.students],['Inscriptions',s.enrollments],['Candidatures',s.applications],['Campagnes',s.campaigns],['Enseignants',s.teachers],['Filières',s.programs],['Modules',s.modules],['Évaluations',s.assessments],['Séances',s.sessions]];return <Shell><div className="page-head"><div><h1>Tableau de bord</h1><div className="muted">Vue synthétique de l’activité académique et des admissions</div></div></div><div className="cards">{cards.map(([l,n])=><div className="stat" key={l}><div className="muted">{l}</div><div className="n">{n??'—'}</div></div>)}</div><div className="panel"><h2>UniGest v0.4.1</h2><p className="muted">Cette version ajoute la structure académique détaillée, les règles pédagogiques configurables et le cycle de candidature/admission jusqu’à la création du dossier étudiant.</p></div></Shell>}

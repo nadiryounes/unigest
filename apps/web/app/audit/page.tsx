@@ -1,0 +1,5 @@
+"use client";
+import { useEffect, useState } from 'react';
+import Shell from '../../components/Shell';
+import { api } from '../../lib';
+export default function AuditPage(){const[rows,setRows]=useState<any[]>([]),[error,setError]=useState('');useEffect(()=>{api('/audit?limit=300').then(setRows).catch((e:any)=>setError(e.message))},[]);return <Shell><div className="page-head"><div><h1>Journal d’audit</h1><div className="muted">Dernières opérations d’écriture enregistrées par l’API</div></div></div>{error&&<div className="error">{error}</div>}<div className="panel"><div className="table-wrap"><table className="table"><thead><tr><th>Date</th><th>Acteur</th><th>Rôle</th><th>Action</th><th>Ressource</th><th>Résultat</th></tr></thead><tbody>{rows.map(r=><tr key={r.id}><td>{new Date(r.createdAt).toLocaleString('fr-FR')}</td><td>{r.actorEmail||'Système / anonyme'}</td><td>{r.actorRole||'—'}</td><td>{r.method}</td><td>{r.path}</td><td><span className="badge">{r.success?'OK':'ÉCHEC'}</span></td></tr>)}{!rows.length&&<tr><td colSpan={6}>Aucune opération enregistrée</td></tr>}</tbody></table></div></div></Shell>}

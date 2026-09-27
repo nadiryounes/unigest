@@ -1,0 +1,21 @@
+{
+  "name": "unigest-mvp",
+  "private": true,
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm:dev -w apps/api\" \"npm:dev -w apps/web\"",
+    "build": "npm run build -w apps/api && npm run build -w apps/web",
+    "start:api": "npm run start:prod -w apps/api",
+    "start:web": "npm run start -w apps/web"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "version": "0.4.1",
+  "engines": {
+    "node": ">=20.9 <23"
+  }
+}

@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: unigest-api
+    runtime: node
+    plan: free
+    rootDir: apps/api
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:cloud
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_SYNCHRONIZE
+        value: "false"
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_SSL
+        value: "true"
+      - key: DATABASE_SSL_REJECT_UNAUTHORIZED
+        value: "false"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DEMO_SEED_ENABLED
+        value: "false"
+      - key: BOOTSTRAP_ADMIN_EMAIL
+        sync: false
+      - key: BOOTSTRAP_ADMIN_PASSWORD
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: STORAGE_DRIVER
+        value: supabase
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: candidate-documents

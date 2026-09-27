@@ -1,0 +1,14 @@
+{
+  "campaignId": "UUID_CAMPAGNE",
+  "programId": "UUID_FILIERE",
+  "firstName": "Sara",
+  "lastName": "Amrani",
+  "email": "sara.amrani@example.com",
+  "phone": "+212600000000",
+  "nationalId": "AB123456",
+  "birthDate": "2007-03-14",
+  "city": "Casablanca",
+  "diploma": "Baccalauréat",
+  "graduationYear": 2026,
+  "average": 14.25
+}

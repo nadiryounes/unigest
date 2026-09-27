@@ -1,0 +1,2 @@
+import { Injectable } from '@nestjs/common'; import { InjectRepository } from '@nestjs/typeorm'; import { Repository } from 'typeorm'; import { Teacher } from '../entities/teacher.entity';
+@Injectable() export class TeachersService{constructor(@InjectRepository(Teacher) private repo:Repository<Teacher>){} findAll(){return this.repo.find({order:{lastName:'ASC'}})} create(b:any){return this.repo.save(this.repo.create(b))}}
