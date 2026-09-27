@@ -131,14 +131,7 @@ Puis, connecté comme administrateur, utiliser le bouton **Charger les données 
 
 Le chargement est idempotent : les mêmes objets de démonstration ne sont pas recréés à chaque appel.
 
-Comptes de démonstration :
-
-```text
-admin@unigest.local        / Admin123!
-scolarite@unigest.local   / Scolarite123!
-enseignant@unigest.local  / Teacher123!
-etudiant@unigest.local    / Student123!
-```
+Les comptes de démonstration à mots de passe connus sont créés uniquement en développement/test local. Sur un déploiement `NODE_ENV=production`, le seed charge les données académiques de démonstration mais ne crée aucun compte public connu. Utiliser le compte bootstrap administrateur et créer explicitement les autres comptes nécessaires.
 
 Après chargement des données, remettre `DEMO_SEED_ENABLED=false` pour empêcher un chargement accidentel ultérieur.
 
