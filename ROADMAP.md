@@ -9,7 +9,18 @@
 - CI permanente ;
 - documentation reproductible.
 
-## v0.5.1 — Scolarité avancée
+## v0.5.1 — Production Hardening — réalisé
+
+- lockout après échecs de connexion ;
+- révocation/versionnement des sessions JWT ;
+- changement et récupération de mot de passe ;
+- reset à usage unique ;
+- rate limiting persistant ;
+- CSP et headers de sécurité ;
+- tests E2E de sécurité ;
+- Playwright Chromium.
+
+## v0.5.2 — Scolarité avancée
 
 - réinscription annuelle ;
 - changement de groupe/filière avec historique ;
@@ -63,11 +74,10 @@
 ## v1.0 — Pilote établissement
 
 - permissions fines ;
-- récupération de compte et 2FA ;
+- 2FA pour les comptes privilégiés ;
 - sauvegarde/restauration ;
 - supervision ;
-- tests API/E2E ;
-- audit de sécurité ;
 - antivirus fichiers ;
 - politique de conservation ;
+- revue de sécurité externe ;
 - documentation d'exploitation.
