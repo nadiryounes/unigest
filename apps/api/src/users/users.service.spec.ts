@@ -75,7 +75,7 @@ describe('UsersService bootstrap administrator', () => {
 
     expect(result.failedLoginAttempts).toBe(0);
     expect(result.lockedUntil).toBeInstanceOf(Date);
-    expect(result.lockedUntil.getTime()).toBeGreaterThan(Date.now() + 14 * 60 * 1000);
+    expect(result.lockedUntil!.getTime()).toBeGreaterThan(Date.now() + 14 * 60 * 1000);
   });
 
   it('increments tokenVersion when all sessions are revoked', async () => {
