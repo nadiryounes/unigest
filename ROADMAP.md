@@ -1,66 +1,73 @@
 # Roadmap UniGest
 
-## v0.4.1 — Cloud Ready
+## v0.5.0 — Core Operations — réalisé
 
-Réalisé : déploiement Vercel/Render/Supabase, migration initiale complète, stockage Supabase, health check et sécurisation du seed de production.
+- stabilisation Vercel/Supabase ;
+- dashboard opérationnel ;
+- seed de démonstration explicite ;
+- recherche, tri, pagination et export CSV ;
+- CI permanente ;
+- documentation reproductible.
 
-## v0.5 — Scolarité avancée
+## v0.5.1 — Scolarité avancée
 
 - réinscription annuelle ;
-- changement de groupe et de filière avec historique ;
+- changement de groupe/filière avec historique ;
 - suspension, abandon, exclusion et reprise ;
 - redoublement ;
 - équivalences et dispenses ;
 - historique académique consolidé ;
-- gestion des statuts administratifs ;
-- import/export plus complet.
+- statuts administratifs.
 
-## v0.6 — Règles pédagogiques complètes
+## v0.6 — Notes, règles pédagogiques et délibérations
 
-- rattrapages ;
+- grille de notes proche d'Excel ;
+- verrouillage et publication ;
+- sessions normale/rattrapage ;
 - capitalisation ;
 - compensation multi-niveaux ;
-- note éliminatoire par module/élément ;
-- règles différentes selon les accréditations ;
-- décision de jury verrouillable ;
-- versionnement des règles par année universitaire.
+- notes éliminatoires ;
+- décisions de jury verrouillables ;
+- versionnement des règles.
 
-## v0.7 — Documents administratifs
+## v0.7 — Documents institutionnels
 
-- modèles DOCX/PDF ;
-- attestations et certificats ;
+- modèles PDF/DOCX ;
+- certificats et attestations ;
 - relevés officiels ;
+- PV ;
 - QR code de vérification ;
-- signatures/cachets configurables ;
-- registre de délivrance.
+- registre de délivrance ;
+- signatures/cachets configurables.
 
-## v0.8 — Stages, PFE et jurys
+## v0.8 — Stages, PFE, jurys et soutenances
 
-- offres/sujets ;
+- sujets et offres ;
 - affectations ;
+- entreprises/tuteurs ;
 - conventions ;
-- entreprises ;
 - livrables ;
-- soutenances ;
-- composition des jurys ;
-- notes et PV.
+- jurys ;
+- planification des soutenances ;
+- évaluations et PV.
 
-## v0.9 — Planification avancée
+## v0.9 — Planification et notifications
 
-- contraintes d'enseignants, groupes et salles ;
-- capacités des salles ;
-- volumes horaires ;
-- génération assistée/automatique ;
-- solveur d'optimisation.
+- calendrier avancé ;
+- drag & drop ;
+- contraintes de salles/groupes/enseignants ;
+- capacités et volumes horaires ;
+- notifications internes/email ;
+- génération assistée de planning.
 
-## v1.0 — Durcissement production
+## v1.0 — Pilote établissement
 
-- tests unitaires/API/E2E ;
-- sauvegardes/restauration ;
-- 2FA ;
-- récupération de compte ;
+- permissions fines ;
+- récupération de compte et 2FA ;
+- sauvegarde/restauration ;
 - supervision ;
+- tests API/E2E ;
+- audit de sécurité ;
+- antivirus fichiers ;
 - politique de conservation ;
-- antivirus pour les fichiers entrants ;
-- reverse proxy HTTPS ;
 - documentation d'exploitation.
