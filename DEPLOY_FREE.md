@@ -1,16 +1,12 @@
-# Déployer UniGest v0.5.0 gratuitement pour test
+# Déployer UniGest v0.5.1 pour test
 
-Cette procédure décrit l'architecture actuellement validée pour les tests : Vercel pour le frontend et l'API, Supabase pour PostgreSQL et Storage.
+Cette procédure décrit l'architecture validée : Vercel pour le frontend et l'API, Supabase pour PostgreSQL et Storage.
 
 ## 1. Supabase
 
-Créer un projet Supabase et un bucket Storage privé :
+Créer un projet Supabase et un bucket Storage privé `candidate-documents`.
 
-```text
-candidate-documents
-```
-
-Conserver localement :
+Variables à conserver côté serveur :
 
 ```env
 DATABASE_URL=postgresql://...
@@ -19,11 +15,27 @@ SUPABASE_SECRET_KEY=...
 SUPABASE_STORAGE_BUCKET=candidate-documents
 ```
 
-UniGest accepte une URL Session pooler `:5432`. Lorsqu'il tourne sur Vercel, le backend utilise automatiquement le Transaction pooler `:6543`.
+UniGest accepte une URL Session pooler `:5432`. Sur Vercel, le backend utilise automatiquement le Transaction pooler `:6543`.
 
-## 2. Projet Vercel API
+## 2. Migrations avant déploiement
 
-Importer le dépôt `nadiryounes/unigest`.
+La v0.5.1 ajoute une migration de sécurité. Exécuter :
+
+```bash
+npm ci
+npm run build -w apps/api
+npm run migration:run:prod -w apps/api
+```
+
+Vérifier que quatre migrations sont enregistrées, dont :
+
+```text
+1800000000000-V051SecurityHardening
+```
+
+Ne pas activer `DB_SYNCHRONIZE` en production.
+
+## 3. Projet Vercel API
 
 Configuration :
 
@@ -59,7 +71,13 @@ SUPABASE_STORAGE_BUCKET=candidate-documents
 
 CORS_ORIGINS=https://unigest-web.vercel.app
 DEMO_SEED_ENABLED=false
+
+PASSWORD_RESET_WEB_URL=https://unigest-web.vercel.app/reset-password
+RESEND_API_KEY=...
+EMAIL_FROM=UniGest <noreply@example.org>
 ```
+
+`RESEND_API_KEY` et `EMAIL_FROM` sont nécessaires pour envoyer réellement les liens de récupération. Sans eux, l'API reste fonctionnelle mais `/health` indique `passwordRecovery.ready=false`.
 
 Après déploiement :
 
@@ -67,11 +85,9 @@ Après déploiement :
 https://unigest-api.vercel.app/health
 ```
 
-doit retourner un statut `ok` avec `database: ok` et `storage.ready: true`.
+doit retourner `status: ok`, `database: ok`, `storage.ready: true` et `version: 0.5.1`.
 
-## 3. Projet Vercel Web
-
-Importer une deuxième fois le même dépôt.
+## 4. Projet Vercel Web
 
 ```text
 Project name   : unigest-web
@@ -85,58 +101,35 @@ Variable :
 NEXT_PUBLIC_API_URL=https://unigest-api.vercel.app
 ```
 
-Après déploiement :
-
-```text
-https://unigest-web.vercel.app
-```
-
-## 4. Migrations
-
-Les migrations sont lancées explicitement depuis un environnement autorisé à accéder à la base :
-
-```bash
-npm run build -w apps/api
-npm run migration:run:prod -w apps/api
-```
-
-Ne pas les relancer automatiquement à chaque build Vercel.
-
-## 5. Données de démonstration
-
-Pour une démonstration :
-
-1. définir `DEMO_SEED_ENABLED=true` sur le projet `unigest-api` ;
-2. redéployer l'API ;
-3. se connecter avec l'administrateur principal ;
-4. ouvrir le tableau de bord ;
-5. cliquer sur **Charger les données de test** ;
-6. vérifier les étudiants, enseignants, filière DGI, module, campagne et note de démonstration ;
-7. vérifier qu'aucun compte de démonstration à mot de passe connu n'a été créé en production ;
-8. remettre ensuite `DEMO_SEED_ENABLED=false`.
-
-## 6. Vérifications
+## 5. Vérifications de sécurité
 
 Tester :
 
 ```text
 GET  /health
 POST /auth/login
-GET  /dashboard/stats
-GET  /system/demo-status
+POST /auth/forgot-password
+POST /auth/reset-password
+POST /auth/change-password
+POST /auth/logout-all
 ```
 
-Puis, depuis l'interface :
+Vérifier également :
 
-- connexion administrateur ;
-- dashboard ;
-- étudiants et enseignants ;
-- emploi du temps ;
-- notes ;
-- candidatures ;
-- téléchargement d'une pièce ;
-- compte étudiant/enseignant.
+- CSP présente sur le frontend ;
+- `X-Frame-Options: DENY` ;
+- `X-Content-Type-Options: nosniff` ;
+- ancien JWT refusé après changement de mot de passe ou `logout-all` ;
+- reset token inutilisable une deuxième fois ;
+- compte temporairement verrouillé après plusieurs mots de passe incorrects ;
+- rate limiting actif sur les routes publiques sensibles.
 
-## 7. Limites du plan gratuit
+## 6. Données de démonstration
 
-Vercel et Supabase conviennent aux tests et démonstrations dans leurs quotas respectifs. Une exploitation institutionnelle nécessite une architecture et des garanties supplémentaires : sauvegardes, supervision, sécurité, capacité, conformité et support.
+Pour une démonstration, activer temporairement `DEMO_SEED_ENABLED=true`, charger les données depuis le tableau de bord, puis remettre la variable à `false`.
+
+Les comptes de démonstration à mots de passe connus ne sont jamais créés en `NODE_ENV=production`.
+
+## 7. Limites
+
+Le plan gratuit convient à la démonstration et aux tests. Une exploitation institutionnelle nécessite encore sauvegardes, monitoring, 2FA, scan malware, politique de conservation et support opérationnel.
