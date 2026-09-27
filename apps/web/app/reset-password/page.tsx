@@ -67,8 +67,9 @@ export default function ResetPasswordPage() {
             </div>
           )}
           <div className="field">
-            <label>Nouveau mot de passe</label>
+            <label htmlFor="reset-password">Nouveau mot de passe</label>
             <input
+              id="reset-password"
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
@@ -78,8 +79,9 @@ export default function ResetPasswordPage() {
             />
           </div>
           <div className="field">
-            <label>Confirmation</label>
+            <label htmlFor="reset-confirmation">Confirmation</label>
             <input
+              id="reset-confirmation"
               type="password"
               value={confirmation}
               onChange={(event) => setConfirmation(event.target.value)}
