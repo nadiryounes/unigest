@@ -1,8 +1,8 @@
-# UniGest v0.5.0 Core
+# UniGest v0.5.1 — Production Hardening
 
 UniGest est un prototype de système d'information universitaire construit avec Next.js, NestJS, TypeORM, PostgreSQL et Supabase Storage.
 
-## Architecture de test actuelle
+## Architecture
 
 ```text
 Vercel
@@ -12,24 +12,27 @@ Vercel
          |
          +--> Supabase PostgreSQL
          +--> Supabase Storage
+         +--> Resend (optionnel, récupération de compte)
 ```
 
-Sur Vercel, TypeORM est initialisé à la première requête HTTP afin d'éviter de bloquer le démarrage serverless. Pour Supabase, UniGest bascule automatiquement du Session pooler `:5432` vers le Transaction pooler `:6543` lorsqu'il détecte l'environnement Vercel.
+Sur Vercel, TypeORM est initialisé à la première requête HTTP. UniGest accepte une URL Supabase Session pooler `:5432` et bascule automatiquement vers le Transaction pooler `:6543` en environnement Vercel.
 
-## Nouveautés v0.5.0
+## Nouveautés v0.5.1
 
-- tableau de bord enrichi avec activité académique et admissions ;
-- indicateurs de candidatures à traiter, campagnes ouvertes et séances du jour ;
-- répartition des candidatures par statut ;
-- répartition des étudiants par filière ;
-- dernières candidatures et prochaines séances ;
-- chargement explicite et idempotent des données de démonstration ;
-- recherche, tri, pagination et export CSV sur les listes CRUD ;
-- navigation active et version UI `v0.5.0` ;
-- CI GitHub permanente pour compiler l'API et le frontend à chaque push/PR ;
-- documentation alignée sur le déploiement Vercel + Supabase actuel.
+- verrouillage temporaire d'un compte après échecs répétés de connexion ;
+- versionnement des JWT et révocation immédiate de toutes les sessions ;
+- changement de mot de passe depuis l'espace utilisateur ;
+- récupération de compte par jeton opaque, expirant et à usage unique ;
+- livraison optionnelle du lien de reset via Resend ;
+- rate limiting persistant en PostgreSQL pour login, reset et admissions publiques ;
+- CSP et headers de sécurité sur l'API et le frontend ;
+- migration dédiée `V051SecurityHardening` ;
+- tests unitaires sécurité/authentification supplémentaires ;
+- tests E2E API sur reset et révocation de session ;
+- tests navigateur Chromium avec Playwright ;
+- lockfile npm reproductible et CI basé sur `npm ci`.
 
-## Modules disponibles
+## Modules
 
 - authentification JWT et rôles ADMIN, SCOLARITE, TEACHER, STUDENT ;
 - comptes liés aux profils étudiant/enseignant ;
@@ -51,7 +54,7 @@ cp .env.example .env
 docker compose up --build
 ```
 
-Services locaux :
+Services :
 
 - Web : `http://localhost:3000`
 - API : `http://localhost:4000`
@@ -62,14 +65,14 @@ Services locaux :
 
 Voir `DEPLOY_FREE.md`.
 
-Les deux projets Vercel utilisent le même dépôt GitHub avec une Root Directory différente :
+Deux projets Vercel utilisent le même dépôt :
 
 ```text
 unigest-api  -> apps/api
 unigest-web  -> apps/web
 ```
 
-Variables principales de l'API :
+Variables principales API :
 
 ```env
 NODE_ENV=production
@@ -78,10 +81,10 @@ DATABASE_SSL=true
 DATABASE_SSL_REJECT_UNAUTHORIZED=false
 DB_SYNCHRONIZE=false
 
-JWT_SECRET=...
+JWT_SECRET=une-valeur-aleatoire-de-32-caracteres-minimum
 
 BOOTSTRAP_ADMIN_EMAIL=admin@example.org
-BOOTSTRAP_ADMIN_PASSWORD=mot-de-passe-long
+BOOTSTRAP_ADMIN_PASSWORD=minimum-12-caracteres
 BOOTSTRAP_ADMIN_FIRST_NAME=Administrateur
 BOOTSTRAP_ADMIN_LAST_NAME=UniGest
 
@@ -92,6 +95,10 @@ SUPABASE_STORAGE_BUCKET=candidate-documents
 
 CORS_ORIGINS=https://unigest-web.vercel.app
 DEMO_SEED_ENABLED=false
+
+PASSWORD_RESET_WEB_URL=https://unigest-web.vercel.app/reset-password
+RESEND_API_KEY=...
+EMAIL_FROM=UniGest <noreply@example.org>
 ```
 
 Frontend :
@@ -102,14 +109,12 @@ NEXT_PUBLIC_API_URL=https://unigest-api.vercel.app
 
 ## Migrations
 
-Les migrations TypeORM restent exécutées explicitement :
+Les migrations sont explicites et ne sont pas exécutées automatiquement au build Vercel :
 
 ```bash
 npm run build -w apps/api
 npm run migration:run:prod -w apps/api
 ```
-
-Elles ne sont plus exécutées automatiquement à chaque build Vercel.
 
 Migrations actuelles :
 
@@ -117,36 +122,50 @@ Migrations actuelles :
 1770000000000-V02BaseSchema
 1780000000000-V03ProfilesAndAudit
 1790000000000-V04AcademicStructureAdmissions
+1800000000000-V051SecurityHardening
 ```
+
+La migration v0.5.1 ajoute notamment le versionnement des sessions, le verrouillage de compte, les jetons de reset et les compteurs de rate limiting.
 
 ## Données de démonstration
 
-En production/test, définir :
+En production/test, activer temporairement :
 
 ```env
 DEMO_SEED_ENABLED=true
 ```
 
-Puis, connecté comme administrateur, utiliser le bouton **Charger les données de test** depuis le tableau de bord.
+Puis utiliser **Charger les données de test** depuis le tableau de bord administrateur.
 
-Le chargement est idempotent : les mêmes objets de démonstration ne sont pas recréés à chaque appel.
+Les comptes de démonstration à mots de passe connus sont créés uniquement hors `NODE_ENV=production`. En production, le seed peut créer les données académiques fictives mais aucun compte public connu.
 
-Les comptes de démonstration à mots de passe connus sont créés uniquement en développement/test local. Sur un déploiement `NODE_ENV=production`, le seed charge les données académiques de démonstration mais ne crée aucun compte public connu. Utiliser le compte bootstrap administrateur et créer explicitement les autres comptes nécessaires.
+## Sécurité v0.5.1
 
-Après chargement des données, remettre `DEMO_SEED_ENABLED=false` pour empêcher un chargement accidentel ultérieur.
+Cette version réduit nettement les risques du MVP, mais elle ne doit pas encore être considérée comme prête pour des données institutionnelles sensibles sans mesures opérationnelles supplémentaires.
 
-## Sécurité
+Déjà couvert :
 
-La v0.5.0 reste une version de test. Avant exploitation réelle :
+- JWT secret fort obligatoire en production ;
+- révocation de session par `tokenVersion` ;
+- lockout après échecs répétés ;
+- reset à usage unique et expiration 30 minutes ;
+- rate limiting persistant ;
+- CORS par origine exacte ;
+- CSP et headers anti-framing / anti-MIME sniffing ;
+- redaction de données sensibles dans l'audit ;
+- validation de signature PDF/JPEG/PNG ;
+- scan CI des secrets committés ;
+- audit npm high/critical bloquant ;
+- tests unitaires, E2E, migrations, smoke production et Chromium.
 
-- régénérer tous les secrets utilisés pendant les tests ;
-- activer récupération de compte et 2FA ;
-- renforcer le modèle rôles/permissions ;
-- ajouter limitation de débit ;
-- analyser les fichiers entrants ;
-- vérifier/restaurer les sauvegardes ;
-- centraliser logs et supervision ;
-- ajouter tests E2E et audit de sécurité ;
-- définir une politique de conservation/suppression des données.
+Encore requis avant exploitation institutionnelle :
 
-Ne jamais placer `SUPABASE_SECRET_KEY`, `DATABASE_URL` ou `JWT_SECRET` dans une variable `NEXT_PUBLIC_*`.
+- 2FA pour les comptes privilégiés ;
+- antivirus/scan malware des fichiers ;
+- sauvegardes avec tests de restauration ;
+- monitoring et alerting centralisés ;
+- permissions plus fines que les quatre rôles actuels ;
+- politique de conservation et suppression des données ;
+- revue de sécurité externe.
+
+Ne jamais placer `SUPABASE_SECRET_KEY`, `DATABASE_URL`, `JWT_SECRET` ou `RESEND_API_KEY` dans une variable `NEXT_PUBLIC_*`.
