@@ -6,7 +6,7 @@
     "start": "nest start",
     "dev": "nest start --watch",
     "build": "nest build",
-    "vercel-build": "npm run build && npm run migration:run:prod",
+    "vercel-build": "npm run build",
     "start:prod": "node dist/main.js",
     "typeorm": "typeorm-ts-node-commonjs",
     "migration:run": "npm run typeorm -- migration:run -d src/data-source.ts",
