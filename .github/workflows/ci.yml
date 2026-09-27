@@ -21,7 +21,7 @@ jobs:
           node-version: "22"
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Reject committed runtime env files
         shell: bash
@@ -47,7 +47,6 @@ jobs:
           fi
 
       - name: Production dependency audit
-        continue-on-error: true
         run: npm audit --omit=dev --audit-level=high
 
       - name: API unit tests
@@ -90,7 +89,7 @@ jobs:
           node-version: "22"
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Create isolated test databases
         env:
