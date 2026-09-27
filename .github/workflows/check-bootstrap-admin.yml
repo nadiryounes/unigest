@@ -1,0 +1,21 @@
+name: Check bootstrap admin
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/check-bootstrap-admin.yml"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify configured admin
+        shell: bash
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /tmp/admin.json -w "%{http_code}" https://unigest-api.vercel.app/health/bootstrap-admin)
+          echo "status=$code"
+          cat /tmp/admin.json
+          test "$code" = "200"
+          jq -e '.configured == true and .userExists == true and .active == true and .role == "ADMIN" and .passwordMatches == true' /tmp/admin.json
