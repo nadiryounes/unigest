@@ -28,9 +28,7 @@ const adminNav: NavItem[] = [
   ['/audit', 'Journal d’audit'],
 ];
 
-const scolariteNav: NavItem[] = adminNav.filter(
-  ([href]) => !['/accounts', '/audit'].includes(href),
-);
+const scolariteNav: NavItem[] = adminNav.filter(([href]) => !['/accounts', '/audit'].includes(href));
 const teacherNav: NavItem[] = [
   ['/my-space', 'Mon espace'],
   ['/assessments', 'Mes évaluations'],
@@ -67,7 +65,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     <div className="shell">
       <aside className="sidebar">
         <div className="logo">
-          UniGest <span className="version">v0.5.0</span>
+          UniGest <span className="version">v0.5.1</span>
         </div>
         <nav className="nav">
           {nav.map(([href, label]) => (
@@ -84,9 +82,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       </aside>
       <main className="main">
         <header className="topbar">
-          <div>
-            <strong>Système d’information universitaire</strong>
-          </div>
+          <div><strong>Système d’information universitaire</strong></div>
           <div className="muted">
             {user ? `${user.firstName} ${user.lastName} · ${user.role}` : '...'}
           </div>
