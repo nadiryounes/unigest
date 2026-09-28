@@ -36,10 +36,10 @@ export default function Login() {
       <div className="brand-mark">UniGest</div>
       <div className="brand-copy">
         <h1>Administration académique et admissions dans une seule application.</h1>
-        <p>La v0.4.1 structure les niveaux, semestres et règles pédagogiques, puis couvre la candidature jusqu’à l’inscription de l’étudiant.</p>
+        <p>La v0.5.1 consolide les opérations académiques, les admissions et la sécurité des sessions.</p>
         <div className="public-links"><Link href="/apply">Déposer une candidature</Link><Link href="/application-status">Suivre une candidature</Link></div>
       </div>
-      <small>MVP · version 0.4</small>
+      <small>MVP · version 0.5.1</small>
     </section>
     <section className="login-panel">
       <form className="login-card" onSubmit={submit}>
