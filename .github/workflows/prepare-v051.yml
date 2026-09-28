@@ -1,0 +1,36 @@
+name: Prepare v0.5.1 dependencies
+
+on:
+  push:
+    branches: [v0.5.1-production-hardening]
+    paths:
+      - ".github/workflows/prepare-v051.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v0.5.1-production-hardening
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Playwright test runner
+        run: npm install -w apps/web -D @playwright/test
+      - name: Bump workspace versions
+        run: npm version 0.5.1 --workspaces --include-workspace-root --no-git-tag-version
+      - name: Refresh lockfile
+        run: npm install --package-lock-only --ignore-scripts
+      - name: Commit dependency lock
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json apps/api/package.json apps/web/package.json
+          git diff --cached --quiet && exit 0
+          git commit -m "Prepare UniGest v0.5.1 dependencies"
+          git push origin HEAD:v0.5.1-production-hardening
