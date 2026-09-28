@@ -114,10 +114,11 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: |
-          test "$(psql -h 127.0.0.1 -U postgres -d unigest_migration_test -tAc "SELECT count(*) FROM migrations;")" = "3"
+          test "$(psql -h 127.0.0.1 -U postgres -d unigest_migration_test -tAc "SELECT count(*) FROM migrations;")" = "4"
           test "$(psql -h 127.0.0.1 -U postgres -d unigest_migration_test -tAc "SELECT to_regclass('public.users') IS NOT NULL;")" = "t"
           test "$(psql -h 127.0.0.1 -U postgres -d unigest_migration_test -tAc "SELECT to_regclass('public.applications') IS NOT NULL;")" = "t"
           test "$(psql -h 127.0.0.1 -U postgres -d unigest_migration_test -tAc "SELECT to_regclass('public.audit_logs') IS NOT NULL;")" = "t"
+          test "$(psql -h 127.0.0.1 -U postgres -d unigest_migration_test -tAc "SELECT column_name FROM information_schema.columns WHERE table_name='users' AND column_name='authVersion';")" = "authVersion"
 
       - name: API end-to-end functional tests
         env:

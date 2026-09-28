@@ -54,6 +54,55 @@ describe('UniGest API functional flows (e2e)', () => {
     expect(me.body.passwordHash).toBeUndefined();
   });
 
+
+  it('changes password and invalidates the previous JWT', async () => {
+    const original = adminToken;
+    await request(app.getHttpServer())
+      .post('/auth/change-password')
+      .set('Authorization', `Bearer ${original}`)
+      .send({
+        currentPassword: process.env.BOOTSTRAP_ADMIN_PASSWORD,
+        newPassword: 'AuditAdminPassword456!',
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .get('/auth/me')
+      .set('Authorization', `Bearer ${original}`)
+      .expect(401);
+
+    const relogin = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: process.env.BOOTSTRAP_ADMIN_EMAIL,
+        password: 'AuditAdminPassword456!',
+      })
+      .expect(201);
+
+    adminToken = relogin.body.accessToken;
+
+    await request(app.getHttpServer())
+      .post('/auth/logout-all')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({})
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .get('/auth/me')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(401);
+
+    const finalLogin = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: process.env.BOOTSTRAP_ADMIN_EMAIL,
+        password: 'AuditAdminPassword456!',
+      })
+      .expect(201);
+
+    adminToken = finalLogin.body.accessToken;
+  });
+
   it('blocks unauthenticated administrative access', async () => {
     await request(app.getHttpServer()).get('/students').expect(401);
   });
