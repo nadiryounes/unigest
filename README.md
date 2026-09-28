@@ -1,4 +1,4 @@
-# UniGest v0.5.0 Core
+# UniGest v0.5.1 Production Hardening
 
 UniGest est un prototype de système d'information universitaire construit avec Next.js, NestJS, TypeORM, PostgreSQL et Supabase Storage.
 
@@ -16,7 +16,7 @@ Vercel
 
 Sur Vercel, TypeORM est initialisé à la première requête HTTP afin d'éviter de bloquer le démarrage serverless. Pour Supabase, UniGest bascule automatiquement du Session pooler `:5432` vers le Transaction pooler `:6543` lorsqu'il détecte l'environnement Vercel.
 
-## Nouveautés v0.5.0
+## Nouveautés v0.5.1
 
 - tableau de bord enrichi avec activité académique et admissions ;
 - indicateurs de candidatures à traiter, campagnes ouvertes et séances du jour ;
@@ -25,8 +25,12 @@ Sur Vercel, TypeORM est initialisé à la première requête HTTP afin d'éviter
 - dernières candidatures et prochaines séances ;
 - chargement explicite et idempotent des données de démonstration ;
 - recherche, tri, pagination et export CSV sur les listes CRUD ;
-- navigation active et version UI `v0.5.0` ;
+- navigation active et version UI `v0.5.1` ;
 - CI GitHub permanente pour compiler l'API et le frontend à chaque push/PR ;
+- révocation des JWT après changement de mot de passe ou déconnexion globale ;
+- rate limiting ciblé sur la connexion et les admissions publiques ;
+- headers HTTP/CSP sur l'API et le frontend ;
+- test navigateur Playwright du flux de connexion administrateur ;
 - documentation alignée sur le déploiement Vercel + Supabase actuel.
 
 ## Modules disponibles
@@ -117,6 +121,7 @@ Migrations actuelles :
 1770000000000-V02BaseSchema
 1780000000000-V03ProfilesAndAudit
 1790000000000-V04AcademicStructureAdmissions
+1800000000000-V05SecurityHardening
 ```
 
 ## Données de démonstration
@@ -137,16 +142,16 @@ Après chargement des données, remettre `DEMO_SEED_ENABLED=false` pour empêche
 
 ## Sécurité
 
-La v0.5.0 reste une version de test. Avant exploitation réelle :
+La v0.5.1 renforce le MVP, mais une exploitation institutionnelle réelle exige encore :
 
 - régénérer tous les secrets utilisés pendant les tests ;
 - activer récupération de compte et 2FA ;
 - renforcer le modèle rôles/permissions ;
-- ajouter limitation de débit ;
+- remplacer le rate limiting mémoire par un stockage distribué si plusieurs instances servent l’API ;
 - analyser les fichiers entrants ;
 - vérifier/restaurer les sauvegardes ;
 - centraliser logs et supervision ;
-- ajouter tests E2E et audit de sécurité ;
+- maintenir les tests E2E API et navigateur Playwright, et compléter par un audit de sécurité externe ;
 - définir une politique de conservation/suppression des données.
 
 Ne jamais placer `SUPABASE_SECRET_KEY`, `DATABASE_URL` ou `JWT_SECRET` dans une variable `NEXT_PUBLIC_*`.
