@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.5.1 — Production Hardening
+
+### Authentification et sessions
+- Versionnement des JWT avec `authVersion`.
+- Changement de mot de passe authentifié.
+- Révocation globale des sessions.
+- Invalidation des sessions lors de la désactivation d'un compte.
+
+### Sécurité HTTP
+- Rate limiting ciblé sur `/auth/login` et les POST d'admissions publiques.
+- Headers API : HSTS en production, CSP restrictive, nosniff, anti-framing, referrer policy et permissions policy.
+- Headers/CSP équivalents sur Next.js.
+
+### Qualité
+- Migration `1800000000000-V05SecurityHardening`.
+- Tests unitaires de session/version JWT et rate limiting.
+- E2E de changement de mot de passe et révocation de sessions.
+- Test navigateur Playwright de la connexion administrateur et du dashboard.
+
 ## 0.5.0 — Core Operations
 
 ### Fiabilité cloud

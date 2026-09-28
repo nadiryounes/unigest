@@ -24,6 +24,7 @@ import { CandidateDocument } from './entities/candidate-document.entity';
 import { V02BaseSchema1770000000000 } from './migrations/1770000000000-V02BaseSchema';
 import { V03ProfilesAndAudit1780000000000 } from './migrations/1780000000000-V03ProfilesAndAudit';
 import { V04AcademicStructureAdmissions1790000000000 } from './migrations/1790000000000-V04AcademicStructureAdmissions';
+import { V05SecurityHardening1800000000000 } from './migrations/1800000000000-V05SecurityHardening';
 
 export const entities = [User, Student, Teacher, Program, AcademicModule, Enrollment, ClassSession, Attendance, Grade, AcademicYear, StudentGroup, Assessment, AuditLog, AcademicLevel, AcademicSemester, ModuleElement, ValidationRule, ApplicationCampaign, Candidate, Application, CandidateDocument];
 
@@ -51,6 +52,11 @@ export default new DataSource({
       }),
   ssl,
   entities,
-  migrations: [V02BaseSchema1770000000000, V03ProfilesAndAudit1780000000000, V04AcademicStructureAdmissions1790000000000],
+  migrations: [
+    V02BaseSchema1770000000000,
+    V03ProfilesAndAudit1780000000000,
+    V04AcademicStructureAdmissions1790000000000,
+    V05SecurityHardening1800000000000,
+  ],
   synchronize: false,
 });

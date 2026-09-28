@@ -18,6 +18,8 @@ export class User {
   @Column() lastName: string;
   @Column({ type: 'enum', enum: UserRole, default: UserRole.STUDENT }) role: UserRole;
   @Column({ default: true }) active: boolean;
+  @Column({ default: 0 }) authVersion: number;
+  @Column({ type: 'timestamp', nullable: true }) passwordChangedAt?: Date;
 
   @OneToOne(() => Student, { nullable: true, eager: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'studentProfileId' })

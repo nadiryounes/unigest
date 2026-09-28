@@ -190,10 +190,9 @@ export default function Dashboard() {
       </div>
 
       <div className="panel release-panel">
-        <h2>UniGest v0.5.0 Core</h2>
+        <h2>UniGest v0.5.1 Production Hardening</h2>
         <p className="muted">
-          Cette version consolide le socle cloud, ajoute un pilotage explicite des données de démonstration,
-          enrichit le tableau de bord et améliore toutes les listes avec recherche, tri, pagination et export CSV.
+          Cette version renforce les sessions JWT, la sécurité HTTP, le rate limiting et les tests navigateur, tout en conservant le socle fonctionnel v0.5.
         </p>
       </div>
     </Shell>
