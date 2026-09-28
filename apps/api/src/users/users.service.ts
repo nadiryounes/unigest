@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
@@ -27,16 +27,10 @@ export class UsersService {
       expectedPassword.length < 12 ||
       normalizedEmail !== expectedEmail ||
       password !== expectedPassword
-    ) {
-      return undefined;
-    }
+    ) return undefined;
 
     const existing = await this.repo.findOne({ where: { email: expectedEmail } });
-    if (existing) {
-      // Le secret bootstrap sert uniquement à la création initiale.
-      // Il ne doit jamais réactiver ni réinitialiser un compte existant.
-      return undefined;
-    }
+    if (existing) return undefined;
 
     const user = this.repo.create({
       email: expectedEmail,
@@ -45,6 +39,7 @@ export class UsersService {
       lastName: String(process.env.BOOTSTRAP_ADMIN_LAST_NAME || 'UniGest'),
       role: UserRole.ADMIN,
       active: true,
+      authVersion: 0,
     });
 
     return this.repo.save(user);
@@ -86,15 +81,42 @@ export class UsersService {
       active: body.active !== false,
       studentProfile,
       teacherProfile,
+      authVersion: 0,
     }));
     const { passwordHash, ...safe } = saved;
     return safe;
+  }
+
+  async changePassword(id: string, currentPassword: string, newPassword: string) {
+    const user = await this.repo.findOne({ where: { id } });
+    if (!user || !user.active) throw new NotFoundException('Compte introuvable');
+    if (!(await bcrypt.compare(String(currentPassword || ''), user.passwordHash))) {
+      throw new UnauthorizedException('Mot de passe actuel incorrect');
+    }
+    const next = String(newPassword || '');
+    if (next.length < 12) throw new BadRequestException('Le nouveau mot de passe doit contenir au moins 12 caractères');
+    if (await bcrypt.compare(next, user.passwordHash)) throw new BadRequestException('Le nouveau mot de passe doit être différent de l’ancien');
+
+    user.passwordHash = await bcrypt.hash(next, 12);
+    user.passwordChangedAt = new Date();
+    user.authVersion = Number(user.authVersion || 0) + 1;
+    await this.repo.save(user);
+    return { changed: true };
+  }
+
+  async revokeAllSessions(id: string) {
+    const user = await this.repo.findOne({ where: { id } });
+    if (!user) throw new NotFoundException('Compte introuvable');
+    user.authVersion = Number(user.authVersion || 0) + 1;
+    await this.repo.save(user);
+    return { revoked: true };
   }
 
   async setActive(id: string, active: boolean) {
     const user = await this.repo.findOne({ where: { id } });
     if (!user) throw new NotFoundException('Compte introuvable');
     user.active = !!active;
+    if (!user.active) user.authVersion = Number(user.authVersion || 0) + 1;
     const saved = await this.repo.save(user);
     const { passwordHash, ...safe } = saved;
     return safe;

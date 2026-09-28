@@ -10,21 +10,23 @@ export class AuthService {
   async login(email: string, password: string) {
     const normalizedEmail = String(email || '').trim().toLowerCase();
     const normalizedPassword = String(password || '');
-    if (!normalizedEmail || !normalizedPassword) {
-      throw new UnauthorizedException('Identifiants invalides');
-    }
+    if (!normalizedEmail || !normalizedPassword) throw new UnauthorizedException('Identifiants invalides');
 
     let user = await this.users.findByEmail(normalizedEmail);
-
     if (!user || !user.active || !(await bcrypt.compare(normalizedPassword, user.passwordHash))) {
       user = (await this.users.ensureBootstrapAdmin(normalizedEmail, normalizedPassword)) ?? null;
     }
-
     if (!user || !user.active || !(await bcrypt.compare(normalizedPassword, user.passwordHash))) {
       throw new UnauthorizedException('Identifiants invalides');
     }
 
-    const accessToken = await this.jwt.signAsync({ sub: user.id, email: user.email, role: user.role });
+    const accessToken = await this.jwt.signAsync({
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      av: Number(user.authVersion || 0),
+    });
+
     return {
       accessToken,
       user: {
@@ -37,5 +39,13 @@ export class AuthService {
         teacherProfileId: user.teacherProfile?.id,
       },
     };
+  }
+
+  changePassword(userId: string, currentPassword: string, newPassword: string) {
+    return this.users.changePassword(userId, currentPassword, newPassword);
+  }
+
+  logoutAll(userId: string) {
+    return this.users.revokeAllSessions(userId);
   }
 }
