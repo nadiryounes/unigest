@@ -35,11 +35,12 @@ function decodeBase32(value: string) {
 }
 
 function encryptionKey() {
-  const secret = String(process.env.MFA_ENCRYPTION_KEY || process.env.JWT_SECRET || '');
-  if (process.env.NODE_ENV === 'production' && secret.length < 32) {
+  const explicit = String(process.env.MFA_ENCRYPTION_KEY || '');
+  if (process.env.NODE_ENV === 'production' && explicit.length < 32) {
     throw new Error('MFA_ENCRYPTION_KEY doit contenir au moins 32 caractères en production');
   }
-  return createHash('sha256').update(secret || 'unigest-development-mfa-key').digest();
+  const secret = explicit || String(process.env.JWT_SECRET || '') || 'unigest-development-mfa-key';
+  return createHash('sha256').update(secret).digest();
 }
 
 export function generateTotpSecret() {
