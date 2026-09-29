@@ -16,3 +16,9 @@ process.env.DEMO_SEED_ENABLED = 'true';
 process.env.STORAGE_DRIVER = 'local';
 process.env.LOCAL_UPLOAD_DIR = '/tmp/unigest-e2e-uploads';
 process.env.CORS_ORIGINS = 'http://localhost:3000';
+
+process.env.MFA_ENCRYPTION_KEY = 'test-mfa-encryption-key-that-is-long-enough';
+process.env.MFA_ISSUER = 'UniGest Test';
+process.env.PASSWORD_RESET_TEST_MODE = 'true';
+process.env.MAIL_DRIVER = 'console';
+process.env.RATE_LIMIT_SALT = 'test-rate-limit-salt-that-is-long-enough';
