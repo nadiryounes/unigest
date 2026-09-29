@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.5.2 — Account Security
+
+### Comptes et authentification
+- Récupération de mot de passe avec jeton aléatoire, haché en base, expirant après 30 minutes et à usage unique.
+- MFA TOTP compatible avec les applications d’authentification standards.
+- Chiffrement AES-256-GCM des secrets TOTP.
+- Codes de récupération à usage unique.
+- Challenge MFA JWT distinct du JWT d’accès.
+- Écran utilisateur « Sécurité du compte ».
+
+### Protection distribuée
+- Remplacement du rate limiting mémoire par des compteurs PostgreSQL partagés entre instances Vercel.
+- Repli mémoire temporaire si la table V06 n’est pas encore présente.
+- Politiques dédiées pour login, MFA, récupération de mot de passe et admissions publiques.
+
+### Traçabilité et qualité
+- Classification des opérations d’authentification comme événements de sécurité dans l’audit.
+- Migration `1810000000000-V06AccountSecurity`.
+- Health check enrichi avec état du schéma de sécurité et du transport e-mail.
+- Tests unitaires TOTP/chiffrement/rate limiting, E2E récupération+MFA et Playwright écran Sécurité.
+
+
 ## 0.5.1 — Production Hardening
 
 ### Authentification et sessions
