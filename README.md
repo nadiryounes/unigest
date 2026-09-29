@@ -1,4 +1,4 @@
-# UniGest v0.5.1 Production Hardening
+# UniGest v0.5.2 Account Security
 
 UniGest est un prototype de système d'information universitaire construit avec Next.js, NestJS, TypeORM, PostgreSQL et Supabase Storage.
 
@@ -16,7 +16,7 @@ Vercel
 
 Sur Vercel, TypeORM est initialisé à la première requête HTTP afin d'éviter de bloquer le démarrage serverless. Pour Supabase, UniGest bascule automatiquement du Session pooler `:5432` vers le Transaction pooler `:6543` lorsqu'il détecte l'environnement Vercel.
 
-## Nouveautés v0.5.1
+## Nouveautés v0.5.2
 
 - tableau de bord enrichi avec activité académique et admissions ;
 - indicateurs de candidatures à traiter, campagnes ouvertes et séances du jour ;
@@ -28,9 +28,14 @@ Sur Vercel, TypeORM est initialisé à la première requête HTTP afin d'éviter
 - navigation active et version UI `v0.5.1` ;
 - CI GitHub permanente pour compiler l'API et le frontend à chaque push/PR ;
 - révocation des JWT après changement de mot de passe ou déconnexion globale ;
-- rate limiting ciblé sur la connexion et les admissions publiques ;
+- récupération de mot de passe par jeton temporaire à usage unique ;
+- authentification multifacteur TOTP avec codes de récupération ;
+- chiffrement AES-GCM du secret MFA côté serveur ;
+- rate limiting PostgreSQL partagé entre instances, avec repli mémoire si V06 n'est pas encore appliquée ;
+- limitation spécifique de la connexion, du MFA, de la récupération de compte et des admissions publiques ;
+- journalisation dédiée des événements de sécurité ;
 - headers HTTP/CSP sur l'API et le frontend ;
-- test navigateur Playwright du flux de connexion administrateur ;
+- tests navigateur Playwright du flux de connexion et de l'écran Sécurité ;
 - documentation alignée sur le déploiement Vercel + Supabase actuel.
 
 ## Modules disponibles
@@ -83,6 +88,14 @@ DATABASE_SSL_REJECT_UNAUTHORIZED=false
 DB_SYNCHRONIZE=false
 
 JWT_SECRET=...
+MFA_ENCRYPTION_KEY=...
+MFA_ISSUER=UniGest
+RATE_LIMIT_SALT=...
+
+MAIL_DRIVER=resend
+RESEND_API_KEY=...
+MAIL_FROM=UniGest <no-reply@example.org>
+WEB_BASE_URL=https://unigest-web.vercel.app
 
 BOOTSTRAP_ADMIN_EMAIL=admin@example.org
 BOOTSTRAP_ADMIN_PASSWORD=mot-de-passe-long
@@ -122,6 +135,7 @@ Migrations actuelles :
 1780000000000-V03ProfilesAndAudit
 1790000000000-V04AcademicStructureAdmissions
 1800000000000-V05SecurityHardening
+1810000000000-V06AccountSecurity
 ```
 
 ## Données de démonstration
@@ -142,16 +156,14 @@ Après chargement des données, remettre `DEMO_SEED_ENABLED=false` pour empêche
 
 ## Sécurité
 
-La v0.5.1 renforce le MVP, mais une exploitation institutionnelle réelle exige encore :
+La v0.5.2 renforce nettement le contrôle des comptes. Pour activer toutes ses fonctions en production, appliquer la migration V06 puis configurer `MFA_ENCRYPTION_KEY`, `RATE_LIMIT_SALT` et, pour les e-mails de récupération, un fournisseur de messagerie. Le pilote institutionnel exige encore :
 
 - régénérer tous les secrets utilisés pendant les tests ;
-- activer récupération de compte et 2FA ;
 - renforcer le modèle rôles/permissions ;
-- remplacer le rate limiting mémoire par un stockage distribué si plusieurs instances servent l’API ;
-- analyser les fichiers entrants ;
-- vérifier/restaurer les sauvegardes ;
-- centraliser logs et supervision ;
-- maintenir les tests E2E API et navigateur Playwright, et compléter par un audit de sécurité externe ;
-- définir une politique de conservation/suppression des données.
+- analyser les fichiers entrants avec un moteur antimalware ;
+- automatiser et tester sauvegarde/restauration ;
+- centraliser logs, métriques et alertes ;
+- formaliser rétention/suppression des données et procédures d'incident ;
+- maintenir les tests E2E API/navigateur et compléter par un audit de sécurité externe.
 
 Ne jamais placer `SUPABASE_SECRET_KEY`, `DATABASE_URL` ou `JWT_SECRET` dans une variable `NEXT_PUBLIC_*`.
