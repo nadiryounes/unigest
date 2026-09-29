@@ -114,11 +114,14 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: |
-          test "$(psql -h 127.0.0.1 -U postgres -d unigest_migration_test -tAc "SELECT count(*) FROM migrations;")" = "4"
+          test "$(psql -h 127.0.0.1 -U postgres -d unigest_migration_test -tAc "SELECT count(*) FROM migrations;")" = "5"
           test "$(psql -h 127.0.0.1 -U postgres -d unigest_migration_test -tAc "SELECT to_regclass('public.users') IS NOT NULL;")" = "t"
           test "$(psql -h 127.0.0.1 -U postgres -d unigest_migration_test -tAc "SELECT to_regclass('public.applications') IS NOT NULL;")" = "t"
           test "$(psql -h 127.0.0.1 -U postgres -d unigest_migration_test -tAc "SELECT to_regclass('public.audit_logs') IS NOT NULL;")" = "t"
           test "$(psql -h 127.0.0.1 -U postgres -d unigest_migration_test -tAc "SELECT column_name FROM information_schema.columns WHERE table_name='users' AND column_name='authVersion';")" = "authVersion"
+          test "$(psql -h 127.0.0.1 -U postgres -d unigest_migration_test -tAc "SELECT to_regclass('public.user_security') IS NOT NULL;")" = "t"
+          test "$(psql -h 127.0.0.1 -U postgres -d unigest_migration_test -tAc "SELECT to_regclass('public.password_reset_tokens') IS NOT NULL;")" = "t"
+          test "$(psql -h 127.0.0.1 -U postgres -d unigest_migration_test -tAc "SELECT to_regclass('public.rate_limit_buckets') IS NOT NULL;")" = "t"
 
       - name: API end-to-end functional tests
         env:
@@ -152,6 +155,9 @@ jobs:
           DATABASE_SSL: "false"
           DB_SYNCHRONIZE: "true"
           JWT_SECRET: smoke-test-jwt-secret-that-is-long-enough
+          MFA_ENCRYPTION_KEY: smoke-test-mfa-encryption-key-that-is-long-enough
+          RATE_LIMIT_SALT: smoke-test-rate-limit-salt-that-is-long-enough
+          MAIL_DRIVER: disabled
           BOOTSTRAP_ADMIN_EMAIL: smoke-admin@unigest.test
           BOOTSTRAP_ADMIN_PASSWORD: SmokeAdminPassword123!
           BOOTSTRAP_ADMIN_FIRST_NAME: Smoke
@@ -185,7 +191,9 @@ jobs:
           fi
           cat /tmp/health.json
           grep -q '"status":"ok"' /tmp/health.json
-          grep -q '"version":"0.5.1"' /tmp/health.json
+          grep -q '"version":"0.5.2"' /tmp/health.json
+          grep -q '"accountSecurityReady":true' /tmp/health.json
+          grep -q '"distributedRateLimitReady":true' /tmp/health.json
 
           login_code=$(curl -sS -o /tmp/login.json -w "%{http_code}" \
             -X POST http://127.0.0.1:4000/auth/login \
