@@ -15,12 +15,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: { sub: string; av?: number }) {
+  async validate(payload: { sub: string; av?: number; purpose?: string }) {
+    if (payload.purpose && payload.purpose !== 'access') {
+      throw new UnauthorizedException('Jeton non autorisé pour cet usage');
+    }
+
     const user = await this.users.findById(payload.sub);
-    if (!user || !user.active) throw new UnauthorizedException('Compte inactif ou introuvable');
+    if (!user || !user.active) {
+      throw new UnauthorizedException('Compte inactif ou introuvable');
+    }
+
     if (Number(payload.av ?? 0) !== Number(user.authVersion || 0)) {
       throw new UnauthorizedException('Session expirée ou révoquée');
     }
+
     return user;
   }
 }
