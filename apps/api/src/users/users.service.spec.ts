@@ -34,6 +34,27 @@ describe('UsersService bootstrap administrator', () => {
     expect(repo.save).toHaveBeenCalledTimes(1);
   });
 
+  it('changes a password and increments the authentication version', async () => {
+    const user: any = {
+      id: 'u1',
+      email: 'user@example.org',
+      passwordHash: await bcrypt.hash('OldPassword123!', 4),
+      active: true,
+      authVersion: 2,
+    };
+    const repo: any = {
+      findOne: jest.fn().mockResolvedValue(user),
+      save: jest.fn(async (value) => value),
+    };
+    const service = new UsersService(repo, {} as any, {} as any);
+
+    await service.setPassword('u1', 'NewPassword456!');
+
+    expect(user.authVersion).toBe(3);
+    expect(user.passwordChangedAt).toBeInstanceOf(Date);
+    expect(await bcrypt.compare('NewPassword456!', user.passwordHash)).toBe(true);
+  });
+
   it('does not reset or reactivate an existing account with the bootstrap secret', async () => {
     const existing = {
       id: 'existing',
