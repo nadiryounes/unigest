@@ -44,11 +44,16 @@ import { ApplicationCampaign } from './entities/application-campaign.entity';
 import { Candidate } from './entities/candidate.entity';
 import { Application } from './entities/application.entity';
 import { CandidateDocument } from './entities/candidate-document.entity';
+import { UserSecurity } from './entities/user-security.entity';
+import { PasswordResetToken } from './entities/password-reset-token.entity';
+import { RateLimitBucket } from './entities/rate-limit-bucket.entity';
 import { SeedService } from './common/seed.service';
 import { StorageModule } from './storage/storage.module';
 import { HealthModule } from './health/health.module';
 import { DatabaseInitGuard } from './common/database-init.guard';
 import { SystemController } from './system/system.controller';
+import { RateLimitGuard } from './common/rate-limit.guard';
+import { MailModule } from './mail/mail.module';
 
 const entities = [
   User,
@@ -72,6 +77,9 @@ const entities = [
   Candidate,
   Application,
   CandidateDocument,
+  UserSecurity,
+  PasswordResetToken,
+  RateLimitBucket,
 ];
 
 @Module({
@@ -132,6 +140,7 @@ const entities = [
     }),
     TypeOrmModule.forFeature(entities),
     StorageModule,
+    MailModule,
     HealthModule,
     UsersModule,
     AuthModule,
@@ -157,6 +166,7 @@ const entities = [
   providers: [
     SeedService,
     { provide: APP_GUARD, useClass: DatabaseInitGuard },
+    { provide: APP_GUARD, useClass: RateLimitGuard },
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
   ],
 })
