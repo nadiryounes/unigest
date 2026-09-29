@@ -77,6 +77,9 @@ export class AccountSecurityService {
 
     try {
       let row = await this.securityRepo.findOne({ where: { userId } });
+      if (row?.mfaEnabled) {
+        throw new BadRequestException('MFA est déjà activée. Désactivez-la avant de la reconfigurer.');
+      }
       if (!row) row = this.securityRepo.create({ userId, mfaEnabled: false });
       row.mfaEnabled = false;
       row.mfaSecretEncrypted = encrypted;
@@ -168,24 +171,59 @@ export class AccountSecurityService {
 
   async confirmPasswordReset(token: string, newPassword: string) {
     const raw = String(token || '').trim();
+    const next = String(newPassword || '');
     if (raw.length < 32) {
       throw new BadRequestException('Lien de réinitialisation invalide ou expiré');
     }
+    if (next.length < 12) {
+      throw new BadRequestException('Le nouveau mot de passe doit contenir au moins 12 caractères');
+    }
 
     const tokenHash = createHash('sha256').update(raw).digest('hex');
-    const row = await this.resetRepo.findOne({
-      where: {
-        tokenHash,
-        usedAt: IsNull(),
-        expiresAt: MoreThan(new Date()),
-      },
-    });
 
-    if (!row) throw new BadRequestException('Lien de réinitialisation invalide ou expiré');
+    try {
+      return await this.resetRepo.manager.transaction(async (manager) => {
+        const rows = await manager.query(
+          `SELECT pr."id", pr."userId", u."passwordHash", u."active"
+           FROM "password_reset_tokens" pr
+           JOIN "users" u ON u."id" = pr."userId"
+           WHERE pr."tokenHash" = $1
+             AND pr."usedAt" IS NULL
+             AND pr."expiresAt" > now()
+           FOR UPDATE OF pr, u`,
+          [tokenHash],
+        );
 
-    await this.users.setPassword(row.userId, newPassword);
-    row.usedAt = new Date();
-    await this.resetRepo.save(row);
-    return { reset: true };
+        const record = rows?.[0];
+        if (!record?.active) {
+          throw new BadRequestException('Lien de réinitialisation invalide ou expiré');
+        }
+        if (await bcrypt.compare(next, record.passwordHash)) {
+          throw new BadRequestException('Le nouveau mot de passe doit être différent de l’ancien');
+        }
+
+        const passwordHash = await bcrypt.hash(next, 12);
+        await manager.query(
+          `UPDATE "users"
+           SET "passwordHash" = $1,
+               "passwordChangedAt" = now(),
+               "authVersion" = COALESCE("authVersion", 0) + 1,
+               "updatedAt" = now()
+           WHERE "id" = $2`,
+          [passwordHash, record.userId],
+        );
+        await manager.query(
+          'UPDATE "password_reset_tokens" SET "usedAt" = now() WHERE "id" = $1',
+          [record.id],
+        );
+
+        return { reset: true };
+      });
+    } catch (error) {
+      if (missingSecurityTable(error)) {
+        throw new ServiceUnavailableException('Migration de sécurité V06 requise');
+      }
+      throw error;
+    }
   }
 }
