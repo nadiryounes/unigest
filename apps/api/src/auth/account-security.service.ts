@@ -135,7 +135,7 @@ export class AccountSecurityService {
     const row = await this.securityRepo.findOne({ where: { userId } });
     if (row) {
       row.mfaEnabled = false;
-      row.mfaSecretEncrypted = undefined;
+      row.mfaSecretEncrypted = null;
       row.recoveryCodeHashes = [];
       await this.securityRepo.save(row);
     }
