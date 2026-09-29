@@ -23,7 +23,18 @@ export class AuditInterceptor implements NestInterceptor {
     const started = Date.now();
     const parts = String(req.path || '').split('/').filter(Boolean);
     const resource = parts[0] || 'system';
-    const action = `${req.method} ${resource}`;
+    const securityActions: Record<string, string> = {
+      '/auth/login': 'SECURITY_LOGIN',
+      '/auth/mfa/verify': 'SECURITY_MFA_VERIFY',
+      '/auth/mfa/setup': 'SECURITY_MFA_SETUP',
+      '/auth/mfa/enable': 'SECURITY_MFA_ENABLE',
+      '/auth/mfa/disable': 'SECURITY_MFA_DISABLE',
+      '/auth/change-password': 'SECURITY_PASSWORD_CHANGE',
+      '/auth/logout-all': 'SECURITY_LOGOUT_ALL',
+      '/auth/password-reset/request': 'SECURITY_PASSWORD_RESET_REQUEST',
+      '/auth/password-reset/confirm': 'SECURITY_PASSWORD_RESET_CONFIRM',
+    };
+    const action = securityActions[String(req.path || '')] || `${req.method} ${resource}`;
     const base = {
       actorUserId: req.user?.id,
       actorEmail: req.user?.email,
