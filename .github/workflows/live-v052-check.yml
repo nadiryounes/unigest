@@ -1,0 +1,33 @@
+name: Live v0.5.2 check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/live-v052-check.yml"
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - name: API health and security readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /tmp/health.json -w "%{http_code}" https://unigest-api.vercel.app/health)
+          echo "health_http=$code"
+          cat /tmp/health.json
+          test "$code" = "200"
+          jq -e '.version == "0.5.2"' /tmp/health.json
+          jq -e '.database == "ok"' /tmp/health.json
+          jq -e '.storage.ready == true' /tmp/health.json
+
+      - name: Public web security pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          for path in / /forgot-password /reset-password; do
+            code=$(curl -sS -o /tmp/page.html -w "%{http_code}" "https://unigest-web.vercel.app$path")
+            echo "$path -> $code"
+            test "$code" = "200"
+          done
