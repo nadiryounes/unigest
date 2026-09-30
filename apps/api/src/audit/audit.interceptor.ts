@@ -7,7 +7,7 @@ function sanitize(value: unknown): unknown {
   if (!value || typeof value !== 'object') return value;
   const out: Record<string, unknown> = {};
   for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
-    if (/password|token|secret|email|phone|telephone|nationalId|cin|birthDate|address/i.test(key)) out[key] = '[REDACTED]';
+    if (/password|token|secret|recovery|email|phone|telephone|nationalId|cin|birthDate|address|^code$/i.test(key)) out[key] = '[REDACTED]';
     else out[key] = sanitize(val);
   }
   return out;
