@@ -104,6 +104,25 @@ export class UsersService {
     return { changed: true };
   }
 
+  async setPassword(id: string, newPassword: string) {
+    const user = await this.repo.findOne({ where: { id } });
+    if (!user || !user.active) throw new NotFoundException('Compte introuvable');
+
+    const next = String(newPassword || '');
+    if (next.length < 12) {
+      throw new BadRequestException('Le nouveau mot de passe doit contenir au moins 12 caractères');
+    }
+    if (await bcrypt.compare(next, user.passwordHash)) {
+      throw new BadRequestException('Le nouveau mot de passe doit être différent de l’ancien');
+    }
+
+    user.passwordHash = await bcrypt.hash(next, 12);
+    user.passwordChangedAt = new Date();
+    user.authVersion = Number(user.authVersion || 0) + 1;
+    await this.repo.save(user);
+    return { changed: true };
+  }
+
   async revokeAllSessions(id: string) {
     const user = await this.repo.findOne({ where: { id } });
     if (!user) throw new NotFoundException('Compte introuvable');

@@ -2,6 +2,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { totpCode } from '../src/common/mfa';
 
 describe('UniGest API functional flows (e2e)', () => {
   let app: INestApplication;
@@ -101,6 +102,107 @@ describe('UniGest API functional flows (e2e)', () => {
       .expect(201);
 
     adminToken = finalLogin.body.accessToken;
+  });
+
+  it('resets the password with a single-use expiring token', async () => {
+    const requestReset = await request(app.getHttpServer())
+      .post('/auth/password-reset/request')
+      .send({ email: process.env.BOOTSTRAP_ADMIN_EMAIL })
+      .expect(201);
+
+    expect(requestReset.body.accepted).toBe(true);
+    expect(requestReset.body.testToken).toEqual(expect.any(String));
+
+    const previousToken = adminToken;
+    await request(app.getHttpServer())
+      .post('/auth/password-reset/confirm')
+      .send({
+        token: requestReset.body.testToken,
+        newPassword: 'AuditAdminPassword789!',
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .get('/auth/me')
+      .set('Authorization', `Bearer ${previousToken}`)
+      .expect(401);
+
+    await request(app.getHttpServer())
+      .post('/auth/password-reset/confirm')
+      .send({
+        token: requestReset.body.testToken,
+        newPassword: 'AnotherPassword123!',
+      })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: process.env.BOOTSTRAP_ADMIN_EMAIL,
+        password: 'AuditAdminPassword456!',
+      })
+      .expect(401);
+
+    const relogin = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: process.env.BOOTSTRAP_ADMIN_EMAIL,
+        password: 'AuditAdminPassword789!',
+      })
+      .expect(201);
+
+    adminToken = relogin.body.accessToken;
+  });
+
+  it('enables TOTP MFA and completes a two-step login', async () => {
+    const setup = await request(app.getHttpServer())
+      .post('/auth/mfa/setup')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ currentPassword: 'AuditAdminPassword789!' })
+      .expect(201);
+
+    expect(setup.body.secret).toEqual(expect.any(String));
+    expect(setup.body.uri).toMatch(/^otpauth:\/\/totp\//);
+
+    const code = totpCode(setup.body.secret);
+    const enabled = await request(app.getHttpServer())
+      .post('/auth/mfa/enable')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ code })
+      .expect(201);
+
+    expect(enabled.body.enabled).toBe(true);
+    expect(enabled.body.recoveryCodes).toHaveLength(8);
+
+    const firstStep = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: process.env.BOOTSTRAP_ADMIN_EMAIL,
+        password: 'AuditAdminPassword789!',
+      })
+      .expect(201);
+
+    expect(firstStep.body.mfaRequired).toBe(true);
+    expect(firstStep.body.accessToken).toBeUndefined();
+
+    const secondStep = await request(app.getHttpServer())
+      .post('/auth/mfa/verify')
+      .send({
+        mfaToken: firstStep.body.mfaToken,
+        code: totpCode(setup.body.secret),
+      })
+      .expect(201);
+
+    expect(secondStep.body.accessToken).toEqual(expect.any(String));
+    adminToken = secondStep.body.accessToken;
+
+    const status = await request(app.getHttpServer())
+      .get('/auth/security-status')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+
+    expect(status.body.available).toBe(true);
+    expect(status.body.mfaEnabled).toBe(true);
   });
 
   it('blocks unauthenticated administrative access', async () => {

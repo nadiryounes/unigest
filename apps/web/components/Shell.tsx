@@ -26,16 +26,18 @@ const adminNav: NavItem[] = [
   ['/documents', 'Documents'],
   ['/accounts', 'Comptes & accès'],
   ['/audit', 'Journal d’audit'],
+  ['/security', 'Sécurité'],
 ];
 
 const scolariteNav: NavItem[] = adminNav.filter(([href]) => !['/accounts', '/audit'].includes(href));
 const teacherNav: NavItem[] = [
   ['/my-space', 'Mon espace'],
+  ['/security', 'Sécurité'],
   ['/assessments', 'Mes évaluations'],
   ['/grades', 'Mes notes'],
   ['/attendance', 'Mes présences'],
 ];
-const studentNav: NavItem[] = [['/my-space', 'Mon espace']];
+const studentNav: NavItem[] = [['/my-space', 'Mon espace'], ['/security', 'Sécurité']];
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
@@ -65,7 +67,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     <div className="shell">
       <aside className="sidebar">
         <div className="logo">
-          UniGest <span className="version">v0.5.1</span>
+          UniGest <span className="version">v0.5.2</span>
         </div>
         <nav className="nav">
           {nav.map(([href, label]) => (

@@ -2,16 +2,23 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from '../users/users.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { AccountSecurityService } from './account-security.service';
 import { JwtStrategy } from './jwt.strategy';
 import { RolesGuard } from '../common/roles.guard';
 import { resolveJwtSecret } from './jwt-secret';
+import { UserSecurity } from '../entities/user-security.entity';
+import { PasswordResetToken } from '../entities/password-reset-token.entity';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
   imports: [
     UsersModule,
+    MailModule,
+    TypeOrmModule.forFeature([UserSecurity, PasswordResetToken]),
     PassportModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
@@ -22,7 +29,7 @@ import { resolveJwtSecret } from './jwt-secret';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, RolesGuard],
+  providers: [AuthService, AccountSecurityService, JwtStrategy, RolesGuard],
   exports: [JwtModule, RolesGuard],
 })
 export class AuthModule {}

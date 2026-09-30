@@ -1,7 +1,7 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { securityHeaders, targetedRateLimit } from './common/security';
+import { securityHeaders } from './common/security';
 
 function normalizeOrigin(value: string) {
   return value.trim().replace(/\/$/, '');
@@ -24,7 +24,6 @@ async function bootstrap() {
   const origins = allowedOrigins();
 
   app.use(securityHeaders);
-  app.use(targetedRateLimit);
 
   app.enableCors({
     origin(

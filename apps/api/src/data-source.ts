@@ -21,12 +21,16 @@ import { ApplicationCampaign } from './entities/application-campaign.entity';
 import { Candidate } from './entities/candidate.entity';
 import { Application } from './entities/application.entity';
 import { CandidateDocument } from './entities/candidate-document.entity';
+import { UserSecurity } from './entities/user-security.entity';
+import { PasswordResetToken } from './entities/password-reset-token.entity';
+import { RateLimitBucket } from './entities/rate-limit-bucket.entity';
 import { V02BaseSchema1770000000000 } from './migrations/1770000000000-V02BaseSchema';
 import { V03ProfilesAndAudit1780000000000 } from './migrations/1780000000000-V03ProfilesAndAudit';
 import { V04AcademicStructureAdmissions1790000000000 } from './migrations/1790000000000-V04AcademicStructureAdmissions';
 import { V05SecurityHardening1800000000000 } from './migrations/1800000000000-V05SecurityHardening';
+import { V06AccountSecurity1810000000000 } from './migrations/1810000000000-V06AccountSecurity';
 
-export const entities = [User, Student, Teacher, Program, AcademicModule, Enrollment, ClassSession, Attendance, Grade, AcademicYear, StudentGroup, Assessment, AuditLog, AcademicLevel, AcademicSemester, ModuleElement, ValidationRule, ApplicationCampaign, Candidate, Application, CandidateDocument];
+export const entities = [User, Student, Teacher, Program, AcademicModule, Enrollment, ClassSession, Attendance, Grade, AcademicYear, StudentGroup, Assessment, AuditLog, AcademicLevel, AcademicSemester, ModuleElement, ValidationRule, ApplicationCampaign, Candidate, Application, CandidateDocument, UserSecurity, PasswordResetToken, RateLimitBucket];
 
 const databaseUrl = process.env.DATABASE_URL;
 const sslEnabled = String(process.env.DATABASE_SSL || (databaseUrl ? 'true' : 'false')).toLowerCase() === 'true';
@@ -57,6 +61,7 @@ export default new DataSource({
     V03ProfilesAndAudit1780000000000,
     V04AcademicStructureAdmissions1790000000000,
     V05SecurityHardening1800000000000,
+    V06AccountSecurity1810000000000,
   ],
   synchronize: false,
 });

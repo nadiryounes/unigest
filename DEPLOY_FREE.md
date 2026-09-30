@@ -1,4 +1,4 @@
-# Déployer UniGest v0.5.0 gratuitement pour test
+# Déployer UniGest v0.5.2 gratuitement pour test
 
 Cette procédure décrit l'architecture actuellement validée pour les tests : Vercel pour le frontend et l'API, Supabase pour PostgreSQL et Storage.
 
@@ -46,6 +46,14 @@ DATABASE_SSL_REJECT_UNAUTHORIZED=false
 DB_SYNCHRONIZE=false
 
 JWT_SECRET=une-valeur-longue-aleatoire
+MFA_ENCRYPTION_KEY=une-autre-valeur-aleatoire-de-32-caracteres-minimum
+MFA_ISSUER=UniGest
+RATE_LIMIT_SALT=une-troisieme-valeur-aleatoire
+
+MAIL_DRIVER=resend
+RESEND_API_KEY=...
+MAIL_FROM=UniGest <no-reply@votre-domaine.tld>
+WEB_BASE_URL=https://unigest-web.vercel.app
 
 BOOTSTRAP_ADMIN_EMAIL=admin@example.org
 BOOTSTRAP_ADMIN_PASSWORD=minimum-12-caracteres
@@ -93,14 +101,14 @@ https://unigest-web.vercel.app
 
 ## 4. Migrations
 
-Les migrations sont lancées explicitement depuis un environnement autorisé à accéder à la base :
+La v0.5.2 ajoute `1810000000000-V06AccountSecurity` pour MFA, récupération de compte et rate limiting distribué. Les migrations sont lancées explicitement depuis un environnement autorisé à accéder à la base :
 
 ```bash
 npm run build -w apps/api
 npm run migration:run:prod -w apps/api
 ```
 
-Ne pas les relancer automatiquement à chaque build Vercel.
+Ne pas les relancer automatiquement à chaque build Vercel. Appliquer V06 avant d'activer MFA/récupération de compte en production. Le login principal reste compatible si V06 n'est pas encore présente, mais ces nouvelles fonctions restent indisponibles.
 
 ## 5. Données de démonstration
 
@@ -122,6 +130,10 @@ Tester :
 ```text
 GET  /health
 POST /auth/login
+POST /auth/mfa/verify
+POST /auth/password-reset/request
+POST /auth/password-reset/confirm
+GET  /auth/security-status
 GET  /dashboard/stats
 GET  /system/demo-status
 ```

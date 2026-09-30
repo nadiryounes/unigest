@@ -190,9 +190,9 @@ export default function Dashboard() {
       </div>
 
       <div className="panel release-panel">
-        <h2>UniGest v0.5.1 Production Hardening</h2>
+        <h2>UniGest v0.5.2 Account Security</h2>
         <p className="muted">
-          Cette version renforce les sessions JWT, la sécurité HTTP, le rate limiting et les tests navigateur, tout en conservant le socle fonctionnel v0.5.
+          Cette version ajoute récupération de compte, MFA TOTP, rate limiting PostgreSQL partagé et journalisation dédiée des événements de sécurité.
         </p>
       </div>
     </Shell>

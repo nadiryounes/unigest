@@ -17,9 +17,13 @@ test('administrator can sign in and reach the operational dashboard', async ({ p
 
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByRole('heading', { name: 'Tableau de bord' })).toBeVisible();
-  await expect(page.locator('.sidebar .version')).toHaveText('v0.5.1');
+  await expect(page.locator('.sidebar .version')).toHaveText('v0.5.2');
   await expect(page.getByText(/ADMIN/)).toBeVisible();
 
   const token = await page.evaluate(() => localStorage.getItem('unigest_token'));
   expect(token).toBeTruthy();
+
+  await page.goto('/security');
+  await expect(page.getByRole('heading', { name: 'Sécurité du compte' })).toBeVisible();
+  await expect(page.getByText(/Authentification à deux facteurs/)).toBeVisible();
 });
