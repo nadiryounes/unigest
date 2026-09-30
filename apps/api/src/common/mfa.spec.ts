@@ -40,6 +40,7 @@ describe('MFA primitives', () => {
     const codes = generateRecoveryCodes();
     expect(codes).toHaveLength(8);
     expect(new Set(codes).size).toBe(8);
+    expect(codes[0]).toMatch(/^[A-F0-9]{4}(?:-[A-F0-9]{4}){4}$/);
     expect(recoveryCodeHash(codes[0])).toBe(recoveryCodeHash(codes[0].toLowerCase()));
   });
 });
